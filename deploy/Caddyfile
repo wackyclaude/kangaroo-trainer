@@ -1,0 +1,17 @@
+{
+	# No remote admin API.
+	admin off
+}
+
+# The Mac's name on the home network (e.g. my-mac.local), plus localhost on the Mac itself.
+{$KT_HOSTNAME}, localhost {
+	# Certificates from Caddy's own local certificate authority (trusted once per device).
+	tls internal
+
+	# Only devices on the home network may connect.
+	@outside not remote_ip private_ranges
+	respond @outside "Not available" 403
+
+	encode zstd gzip
+	reverse_proxy app:8080
+}

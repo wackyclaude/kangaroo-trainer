@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: No contest material in the repo
+        run: npm run check:content
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Tests
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: Dependency audit (production packages)
+        run: npm audit --omit=dev --audit-level=high
+
+  docker:
+    needs: test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Make the source owner-only, as a file copied onto the Mac can be
+        run: chmod -R go-rwx drizzle src package.json
+      - name: Build the app image (not pushed anywhere)
+        run: docker build -t kangaroo-trainer:ci .
+      - name: The app user can read its migrations and start up
+        run: |
+          mkdir -p ci-data ci-content && chmod 777 ci-data
+          docker run --read-only --tmpfs /tmp -v "$PWD/ci-data:/data" -v "$PWD/ci-content:/content:ro" \
+            -e SETUP_CODE=123456 --name kt-ci -d kangaroo-trainer:ci
+          for i in $(seq 30); do
+            if docker exec kt-ci /nodejs/bin/node -e "fetch('http://127.0.0.1:8080/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"; then
+              echo "app is up"; docker logs kt-ci | tail -5; docker rm -f kt-ci; exit 0
+            fi
+            sleep 2
+          done
+          docker logs kt-ci; docker rm -f kt-ci; exit 1
+      - name: Scan the image for known vulnerabilities (summary)
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD:/out" aquasec/trivy:0.57.0 \
+            image --scanners vuln --format json --output /out/trivy-all.json --no-progress kangaroo-trainer:ci
+          summary=$(jq -r '[.Results[]?.Vulnerabilities[]?] as $v |
+            ["CRITICAL","HIGH","MEDIUM","LOW","UNKNOWN"] | map(. as $s | "\($s | ascii_downcase): \([$v[] | select(.Severity == $s)] | length) (\([$v[] | select(.Severity == $s and (.FixedVersion // "") != "")] | length) fixable)") | join(", ")' trivy-all.json)
+          echo "::notice title=Image scan::$summary"
+          echo "### Image scan" >> "$GITHUB_STEP_SUMMARY"
+          echo "$summary" >> "$GITHUB_STEP_SUMMARY"
+          jq -r '.Results[]? | .Target as $t | .Vulnerabilities[]? | select((.Severity == "CRITICAL" or .Severity == "HIGH") and ((.FixedVersion // "") == "")) |
+            "::warning title=\(.Severity) \(.VulnerabilityID) (no fix yet)::\(.PkgName) \(.InstalledVersion) in \($t)"' trivy-all.json | head -10
+      - name: Fail on a critical vulnerability that already has a fix
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD:/out" aquasec/trivy:0.57.0 \
+            image --scanners vuln --severity CRITICAL,HIGH --ignore-unfixed --format json --output /out/trivy.json --no-progress kangaroo-trainer:ci
+          # Show each fixable finding as an annotation on the run, so it is easy to see without the logs.
+          jq -r '.Results[]? | .Target as $t | .Vulnerabilities[]? |
+            "::\(if .Severity == "CRITICAL" then "error" else "warning" end) title=\(.Severity) \(.VulnerabilityID)::\(.PkgName) \(.InstalledVersion) (fixed in \(.FixedVersion)) in \($t)"' trivy.json
+          test "$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL")] | length' trivy.json)" = "0"
+      - name: Build the Caddy image and check the Caddyfile
+        run: |
+          docker build -t kangaroo-caddy:ci deploy/caddy
+          docker run --rm kangaroo-caddy:ci version
+          docker run --rm --read-only --tmpfs /data --tmpfs /config -e KT_HOSTNAME=kt-ci.local \
+            -v "$PWD/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" kangaroo-caddy:ci validate --config /etc/caddy/Caddyfile --adapter caddyfile
+      - name: Scan the Caddy image
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD:/out" aquasec/trivy:0.57.0 \
+            image --scanners vuln --format json --output /out/trivy-caddy.json --no-progress kangaroo-caddy:ci
+          summary=$(jq -r '[.Results[]?.Vulnerabilities[]?] as $v |
+            ["CRITICAL","HIGH","MEDIUM","LOW","UNKNOWN"] | map(. as $s | "\($s | ascii_downcase): \([$v[] | select(.Severity == $s)] | length) (\([$v[] | select(.Severity == $s and (.FixedVersion // "") != "")] | length) fixable)") | join(", ")' trivy-caddy.json)
+          echo "::notice title=Caddy image scan::$summary"
+          echo "### Caddy image scan" >> "$GITHUB_STEP_SUMMARY"
+          echo "$summary" >> "$GITHUB_STEP_SUMMARY"
+          jq -r '.Results[]? | .Target as $t | .Vulnerabilities[]? | select(.Severity == "CRITICAL" or .Severity == "HIGH") |
+            "::\(if .Severity == "CRITICAL" and (.FixedVersion // "") != "" then "error" else "warning" end) title=Caddy \(.Severity) \(.VulnerabilityID)::\(.PkgName) \(.InstalledVersion) (fixed in \(.FixedVersion // "no fix yet")) in \($t)"' trivy-caddy.json | sort -u | head -20
+          test "$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL" and (.FixedVersion // "") != "")] | length' trivy-caddy.json)" = "0"

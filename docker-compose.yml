@@ -1,0 +1,53 @@
+# Kangaroo Trainer: the app plus Caddy for HTTPS on the home network.
+# Paths come from .env (copy .env.example to .env first).
+
+services:
+  app:
+    build: .
+    image: kangaroo-trainer:local
+    restart: unless-stopped
+    environment:
+      LOG_LEVEL: info
+    volumes:
+      - ${KT_DATA_DIR:?set KT_DATA_DIR in .env}:/data
+      - ${KT_BACKUP_DIR:?set KT_BACKUP_DIR in .env}:/backups
+      - ${KT_CONTENT_DIR:?set KT_CONTENT_DIR in .env}:/content:ro
+    # No ports here: only Caddy can reach the app.
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    networks: [internal]
+
+  caddy:
+    # Caddy on a minimal base image (see deploy/caddy/Dockerfile).
+    build: ./deploy/caddy
+    image: kangaroo-caddy:local
+    restart: unless-stopped
+    depends_on: [app]
+    environment:
+      KT_HOSTNAME: ${KT_HOSTNAME:?set KT_HOSTNAME in .env}
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt:
+      - no-new-privileges:true
+    networks: [internal]
+
+networks:
+  internal: {}
+
+volumes:
+  caddy_data: {}
+  caddy_config: {}

@@ -1,0 +1,59 @@
+{
+ "meta": {
+  "count": 3
+ },
+ "questions": [
+  {
+   "id": "wizSMART-2026-01",
+   "level": "wizSMART",
+   "year": 2026,
+   "number": 1,
+   "questions_in_paper": 24,
+   "tier": "warm-up",
+   "focus_primary": "NUM",
+   "focus_secondary": null,
+   "answer": "B",
+   "image": "img/2026-01.png",
+   "text": "Test question 1",
+   "void_note": null,
+   "hint_en": "Count carefully.",
+   "solution_en": "It is B.",
+   "solution_steps_en": [
+    "Count the shapes.",
+    "There are two, so it is B."
+   ]
+  },
+  {
+   "id": "wizSMART-2026-02",
+   "level": "wizSMART",
+   "year": 2026,
+   "number": 2,
+   "questions_in_paper": 24,
+   "tier": "challenge",
+   "focus_primary": "SPA",
+   "focus_secondary": null,
+   "answer": "B",
+   "image": "img/2026-02.png",
+   "text": "Test question 2",
+   "void_note": null,
+   "hint_en": null,
+   "solution_en": null
+  },
+  {
+   "id": "wizSMART-2026-03",
+   "level": "wizSMART",
+   "year": 2026,
+   "number": 3,
+   "questions_in_paper": 24,
+   "tier": "challenge",
+   "focus_primary": "NUM",
+   "focus_secondary": "LOG",
+   "answer": "D",
+   "image": "img/2026-03.png",
+   "text": "Test question 3",
+   "void_note": "Voided by the organisers.",
+   "hint_en": "Think about it.",
+   "solution_en": "Because."
+  }
+ ]
+}

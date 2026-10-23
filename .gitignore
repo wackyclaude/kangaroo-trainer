@@ -1,0 +1,13 @@
+node_modules/
+/dist/
+/data/
+/content/
+*.db
+*.db-*
+.env
+.DS_Store
+coverage/
+# Copyrighted contest material must never be committed
+/bank/
+/raw/
+*.pdf
