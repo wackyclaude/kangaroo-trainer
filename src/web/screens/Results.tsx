@@ -6,8 +6,20 @@ import { Steps } from "../components/Steps";
 import { BadgeMedal } from "../components/Art";
 import { Confetti } from "../components/Confetti";
 import { MascotSays } from "../components/Mascot";
+import { paceLine, RevealBlock } from "../components/Olympiad";
 
 function verdict(r: SessionResults): string {
+  if (r.cutoff) {
+    if (r.cutoff.diff >= 0) return `You reached the ${r.cutoff.year} cutoff!`;
+    if (r.cutoff.diff >= -4) return "So close to the cutoff!";
+    return "Every Olympiad paper makes the next one easier.";
+  }
+  if (r.pace) {
+    if (r.pace.relative >= 1.2) return "Brilliant work!";
+    if (r.pace.relative >= 0.9) return "Right on cutoff pace!";
+    if (r.pace.relative >= 0.6) return "Good going, keep it up!";
+    return "Every mistake is something new to learn.";
+  }
   const pct = r.score / r.maxScore;
   if (pct >= 0.85) return "Brilliant work!";
   if (pct >= 0.65) return "Great effort!";
@@ -27,7 +39,8 @@ export function Results({ sessionId }: { sessionId: number }) {
   if (error) return <div className="message" role="alert">{error}</div>;
   if (!r) return <div aria-busy="true" />;
 
-  const title = modeLabel({ mode: r.mode, paperYear: r.paperYear });
+  const title = modeLabel({ mode: r.mode, paperYear: r.paperYear, contest: r.contest });
+  const oly = r.contest === "olympiad";
   const onPaper = r.delivery === "paper";
   const wentWell = r.rows.filter((x) => x.correct && !x.voided);
 
@@ -51,6 +64,39 @@ export function Results({ sessionId }: { sessionId: number }) {
           </p>
         </div>
       </section>
+
+      {r.cutoff && (
+        <section className="panel stack cutoff-panel" aria-labelledby="cutoff-h">
+          <h2 id="cutoff-h">Compared with the real contest</h2>
+          <p className="big">
+            {r.score} points:{" "}
+            {r.cutoff.diff === 0 ? `exactly the ${r.cutoff.year} cutoff` : `${Math.abs(r.cutoff.diff)} ${r.cutoff.diff > 0 ? "above" : "below"} the ${r.cutoff.year} cutoff`} ({r.cutoff.cutoff}).
+          </p>
+          <div className="cutoff-scale" aria-hidden="true">
+            <span className="cutoff-fill" style={{ width: `${(r.score / r.maxScore) * 100}%` }} />
+            <span className="cutoff-mark" style={{ left: `${(r.cutoff.cutoff / r.maxScore) * 100}%` }} />
+          </div>
+          <p>
+            That's better than <strong>{r.cutoff.betterThan}%</strong> of the klas 1–3 students who did this paper in {r.cutoff.year}.
+          </p>
+          {r.cutoff.target !== r.cutoff.cutoff && (
+            <p className="muted small-line">
+              Your target for this paper: {r.cutoff.target} ({r.cutoff.target > r.cutoff.cutoff ? `${r.cutoff.target - r.cutoff.cutoff} above` : `${r.cutoff.cutoff - r.cutoff.target} below`} the cutoff).
+            </p>
+          )}
+        </section>
+      )}
+
+      {r.pace && (
+        <section className="panel stack" aria-labelledby="pace-h">
+          <h2 id="pace-h">How that compares</h2>
+          <p>{paceLine(r.pace)}.</p>
+          <p className="muted small-line">
+            The klas-1 average is what a typical klas-1 student scores on exactly these questions. Cutoff pace is roughly what someone who just reaches the cutoff scores on them.
+            {r.pace.rough ? " With fewer than 12 questions this is a rough guide." : ""}
+          </p>
+        </section>
+      )}
 
       {r.rewards && (
         <section className="panel reward-panel">
@@ -124,7 +170,7 @@ export function Results({ sessionId }: { sessionId: number }) {
           {r.rows.map((row) => (
             <li key={row.position}>
               <button type="button" className={`result-row ${rowClass(row)}`} aria-expanded={open === row.position} onClick={() => setOpen(open === row.position ? null : row.position)}>
-                <span className="r-num">{row.position}</span>
+                <span className="r-num">{oly ? row.label : row.position}</span>
                 <span className="r-mark" aria-hidden="true">
                   {row.voided ? "•" : row.correct ? "✓" : row.choice === null ? "–" : "✗"}
                 </span>
@@ -133,13 +179,14 @@ export function Results({ sessionId }: { sessionId: number }) {
                     {focusName(row.focusPrimary)}
                   </span>
                   <span className="muted">
-                    {r.mode !== "paper" ? `${row.year} Q${row.number} · ` : ""}
+                    {r.mode !== "paper" ? `${row.year} ${oly ? row.label : `Q${row.number}`} · ` : ""}
                     {row.choice ? `You said ${row.choice}` : "Skipped"} · answer {row.answer}
+                    {oly ? ` · ${row.earned}/${row.points} pts` : ""}
                   </span>
                 </span>
                 <span className="r-time">{onPaper ? "" : duration(row.timeMs)}</span>
               </button>
-              {open === row.position && <Detail row={row} />}
+              {open === row.position && <Detail row={row} oly={oly} />}
             </li>
           ))}
         </ol>
@@ -168,7 +215,19 @@ function rowClass(r: ResultRow) {
   return r.choice === null ? "skip" : "bad";
 }
 
-function Detail({ row }: { row: ResultRow }) {
+function Detail({ row, oly }: { row: ResultRow; oly: boolean }) {
+  if (oly) {
+    return (
+      <div className="result-detail panel">
+        <img className="q-image" src={row.imageUrl} alt={`Question ${row.label}`} />
+        <p style={{ marginTop: 12 }}>
+          <strong>Answer: {row.answer}</strong>
+          {row.hintUsed ? " · you used a hint" : ""}
+        </p>
+        <RevealBlock reveal={{ note: row.note, officialUrl: row.officialUrl, stats: row.stats, level: row.level }} steps={row.steps} label={`${row.year} ${row.label}`} year={row.year} />
+      </div>
+    );
+  }
   return (
     <div className="result-detail panel">
       {row.voided && <div className="message">The organisers cancelled this question because of a mistake in the drawing, so everyone gets the points.</div>}

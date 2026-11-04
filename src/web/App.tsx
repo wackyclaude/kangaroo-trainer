@@ -16,6 +16,7 @@ import { Badges } from "./screens/Badges";
 import { StartQuick } from "./screens/StartQuick";
 import { Print } from "./screens/Print";
 import { AnswerSheet } from "./screens/AnswerSheet";
+import { MeContext } from "./contest";
 
 type View = { kind: "loading" } | { kind: "error"; text: string } | { kind: "setup" } | { kind: "pick" } | { kind: "pin"; profile: ProfileCard } | { kind: "in"; me: Me };
 
@@ -104,14 +105,16 @@ export function App() {
       else if (hash.startsWith("#/focus")) body = <StartFocus key={hash} />;
       else body = view.me.role === "parent" ? <ParentHome me={view.me} /> : <StudentHome me={view.me} />;
       return (
-        <main className={`page${quiz ? " page-quiz" : ""}${print ? " page-print" : ""}`}>
-          {!quiz && (
-            <div className="no-print">
-              <TopBar me={view.me} onSignOut={() => void signOut()} />
-            </div>
-          )}
-          {body}
-        </main>
+        <MeContext.Provider value={view.me}>
+          <main className={`page${quiz ? " page-quiz" : ""}${print ? " page-print" : ""}`}>
+            {!quiz && (
+              <div className="no-print">
+                <TopBar me={view.me} onSignOut={() => void signOut()} />
+              </div>
+            )}
+            {body}
+          </main>
+        </MeContext.Provider>
       );
     }
   }

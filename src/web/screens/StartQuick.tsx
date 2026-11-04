@@ -4,9 +4,13 @@ import { api, messageOf } from "../api";
 import { MascotSays } from "../components/Mascot";
 import { Segmented } from "../components/Segmented";
 import { focusName, go, HELP_TEXT, when } from "../format";
+import { useContest, useLevelRange, withContest } from "../contest";
 
 /** Start screen for "Fix my mistakes" and "Smart mix": the app picks the questions. */
 export function StartQuick({ mode }: { mode: "mistakes" | "smart" }) {
+  const [contest] = useContest();
+  const range = useLevelRange();
+  const oly = contest === "olympiad";
   const [ins, setIns] = useState<Insights | null>(null);
   const [help, setHelp] = useState<HelpLevel>(mode === "mistakes" ? "learn" : "practice");
   const [count, setCount] = useState(mode === "mistakes" ? "10" : "12");
@@ -15,14 +19,14 @@ export function StartQuick({ mode }: { mode: "mistakes" | "smart" }) {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    api.get<Insights>("/api/insights").then(setIns, () => undefined);
-  }, []);
+    api.get<Insights>(withContest("/api/insights", contest)).then(setIns, () => undefined);
+  }, [contest]);
 
   const start = async () => {
     setBusy(true);
     setError("");
     try {
-      const body = mode === "mistakes" ? { mode, help, count: Number(count) } : { mode, help, count: Number(count), timerMinutes: timer === "off" ? null : Number(timer) };
+      const body = mode === "mistakes" ? { mode, help, count: Number(count), contest } : { mode, help, count: Number(count), timerMinutes: timer === "off" ? null : Number(timer), contest };
       const { id } = await api.post<{ id: number }>("/api/sessions", body);
       go(`#/quiz/${id}`);
     } catch (e) {
@@ -40,7 +44,15 @@ export function StartQuick({ mode }: { mode: "mistakes" | "smart" }) {
         <button type="button" className="btn quiet" onClick={() => go("#/")}>
           ← Back
         </button>
-        <h1>{mode === "mistakes" ? "Fix my mistakes" : "Smart mix"}</h1>
+        <h1>
+          {mode === "mistakes" ? "Fix my mistakes" : "Smart mix"}
+          {oly ? " · Olympiad" : ""}
+        </h1>
+        {oly && (
+          <p className="muted small-line">
+            Levels {range[0]}–{range[range.length - 1]} (set by your parent).
+          </p>
+        )}
         {mode === "mistakes" ? (
           <p className="muted">
             Questions you got wrong or skipped come back after 1, 3, 7 and 21 days. Get one right twice in a row without a hint and it's mastered.

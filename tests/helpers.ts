@@ -1,6 +1,7 @@
 import path from "node:path";
 import { openDb } from "../src/server/db/client.js";
 import { importQuestions } from "../src/server/content/import.js";
+import { importOlympiad } from "../src/server/content/olympiad.js";
 import { buildApp } from "../src/server/app.js";
 
 export const CONTENT = path.resolve("tests/fixtures/content");
@@ -9,6 +10,7 @@ export const SETUP_CODE = "123456";
 export async function makeApp() {
   const handle = openDb(":memory:");
   importQuestions(handle.db, CONTENT);
+  importOlympiad(handle.db, CONTENT);
   const app = await buildApp({
     db: handle.db,
     contentDir: CONTENT,

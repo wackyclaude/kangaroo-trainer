@@ -4,28 +4,34 @@ import type { Db } from "../db/client.js";
 import { attempt, masterySnapshot, practiceSession, profile, question, reviewItem } from "../db/schema.js";
 import {
   MASTERED_BOX,
+  OLY_LEVELS,
   type BenchmarkProfile,
   type Benchmarks,
+  type Contest,
   type FocusArea,
   type Insights,
   type Level,
+  type OlyLevel,
+  type OlympiadInsights,
   type SessionSettings,
   type Tier,
   type TrendPoint,
 } from "../../shared/types.js";
+import { olympiadPapers, paceMarks } from "../content/olympiad.js";
+import { profileSettings } from "../practice/contest.js";
 import { contestEstimate, FOCUS_KEYS, median, replayReviews, scoreAreas, speedStats, tierTarget, weakAreas, type Answer } from "./model.js";
 
 /**
  * The answer log for one profile, one entry per question per session (the final answer there).
  * Answers in a test-mode session only count once it has finished; voided questions never count.
  */
-export function countedAnswers(db: Db, profileId: number, upTo = Number.MAX_SAFE_INTEGER): Answer[] {
+export function countedAnswers(db: Db, profileId: number, upTo = Number.MAX_SAFE_INTEGER, contest?: Contest): Answer[] {
   const rows = db
     .select({ a: attempt, q: question, s: practiceSession })
     .from(attempt)
     .innerJoin(question, eq(question.id, attempt.questionId))
     .leftJoin(practiceSession, eq(practiceSession.id, attempt.sessionId))
-    .where(and(eq(attempt.profileId, profileId), lte(attempt.answeredAt, upTo)))
+    .where(and(eq(attempt.profileId, profileId), lte(attempt.answeredAt, upTo), contest ? eq(question.contest, contest) : undefined))
     .orderBy(asc(attempt.id))
     .all();
   const finals = new Map<string, Answer>();
@@ -48,6 +54,12 @@ export function countedAnswers(db: Db, profileId: number, upTo = Number.MAX_SAFE
       timeMs: a.timeMs === null && !prev?.timeMs ? null : (prev?.timeMs ?? 0) + (a.timeMs ?? 0),
       answeredAt: a.answeredAt,
       sessionId: a.sessionId,
+      contest: q.contest,
+      part: q.part,
+      points: q.points,
+      difficulty: q.difficulty,
+      klas1: q.stats?.klas1 ?? null,
+      paper: s?.mode === "paper",
     });
   }
   return [...finals.values()].sort((x, y) => x.answeredAt - y.answeredAt);
@@ -62,24 +74,24 @@ export function rebuildReviews(db: Db, profileId: number, answers = countedAnswe
   });
 }
 
-/** Stores a maturity snapshot per focus area (for the trend lines). */
-export function snapshotMastery(db: Db, profileId: number, at: number, answers = countedAnswers(db, profileId, at)): void {
-  const scores = scoreAreas(answers, at);
+/** Stores a maturity snapshot per focus area (for the trend lines), per contest. */
+export function snapshotMastery(db: Db, profileId: number, at: number, answers = countedAnswers(db, profileId, at, "kangaroo"), contest: Contest = "kangaroo"): void {
+  const scores = scoreAreas(answers.filter((a) => (a.contest ?? "kangaroo") === contest), at);
   db.transaction((tx) => {
     for (const s of scores) {
       if (s.attempts === 0) continue;
       tx.insert(masterySnapshot)
-        .values({ profileId, focusArea: s.focus, level: s.level, weightedAccuracy: s.weightedAccuracy ?? 0, attempts: s.attempts, computedAt: at })
+        .values({ profileId, contest, focusArea: s.focus, level: s.level, weightedAccuracy: s.weightedAccuracy ?? 0, attempts: s.attempts, computedAt: at })
         .run();
     }
   });
 }
 
 /** Called whenever a session ends (in the app, by timeout, or by typing in paper answers). */
-export function afterSessionEnded(db: Db, profileId: number, at = Date.now()): void {
+export function afterSessionEnded(db: Db, profileId: number, at = Date.now(), contest: Contest = "kangaroo"): void {
   const answers = countedAnswers(db, profileId);
   rebuildReviews(db, profileId, answers);
-  snapshotMastery(db, profileId, at, answers.filter((a) => a.answeredAt <= at));
+  snapshotMastery(db, profileId, at, answers.filter((a) => a.answeredAt <= at), contest);
 }
 
 /** At start-up: fill in mistake memory and trend history for practice done before M4. */
@@ -96,30 +108,62 @@ export function backfillInsights(db: Db): number {
       .all();
     rebuildReviews(db, id);
     if (hasSnapshots === 0 && ends.length > 0) {
-      for (const e of ends) snapshotMastery(db, id, e.endedAt!);
+      for (const e of ends) snapshotMastery(db, id, e.endedAt!, countedAnswers(db, id, e.endedAt!, "kangaroo"));
       filled++;
     }
   }
   return filled;
 }
 
-function finishedPapers(db: Db, profileId: number) {
+export function finishedPapers(db: Db, profileId: number, contest: Contest = "kangaroo") {
   return db
-    .select({ year: practiceSession.paperYear, score: practiceSession.score, maxScore: practiceSession.maxScore, endedAt: practiceSession.endedAt })
+    .select({ id: practiceSession.id, year: practiceSession.paperYear, score: practiceSession.score, maxScore: practiceSession.maxScore, endedAt: practiceSession.endedAt })
     .from(practiceSession)
-    .where(and(eq(practiceSession.profileId, profileId), eq(practiceSession.mode, "paper"), isNotNull(practiceSession.endedAt)))
+    .where(and(eq(practiceSession.profileId, profileId), eq(practiceSession.mode, "paper"), eq(practiceSession.contest, contest), isNotNull(practiceSession.endedAt)))
     .all()
     .filter((p) => p.score !== null && p.maxScore)
-    .map((p) => ({ year: p.year, score: p.score!, maxScore: p.maxScore!, endedAt: p.endedAt! }));
+    .map((p) => ({ id: p.id, year: p.year, score: p.score!, maxScore: p.maxScore!, endedAt: p.endedAt! }));
 }
 
-export function buildInsights(db: Db, profileId: number, now = Date.now()): Insights | null {
+export const PACE_WINDOW = 60;
+export const WIDEN_WINDOW = 20;
+export const WIDEN_SHARE = 0.7;
+
+/** Olympiad extras: running cutoff pace, paper scores against their cutoffs, and whether to widen the range. */
+export function olympiadInsights(db: Db, profileId: number, answers: Answer[]): OlympiadInsights {
+  const recent = answers.slice(-PACE_WINDOW);
+  const earned = recent.reduce((t, a) => t + (a.correct ? (a.points ?? 0) : 0), 0);
+  const pace = recent.length >= 6 ? { ...paceMarks(db, recent.map((a) => ({ year: a.year, points: a.points ?? 0, klas1: a.klas1 ?? 0 })), earned), rough: recent.length < 12 } : null;
+  const { facts } = olympiadPapers(db);
+  const papers = finishedPapers(db, profileId, "olympiad")
+    .filter((p) => p.year !== null && facts.get(p.year)?.cutoff != null)
+    .sort((a, b) => a.endedAt - b.endedAt)
+    .map((p) => ({ sessionId: p.id, year: p.year!, score: p.score, cutoff: facts.get(p.year!)!.cutoff!, at: p.endedAt }));
+  const levels = OLY_LEVELS.map((level) => {
+    const at = answers.filter((a) => a.difficulty === level).slice(-WIDEN_WINDOW);
+    return { level, answers: at.length, right: at.filter((a) => a.correct).length };
+  });
+  const range = profileSettings(db, profileId)?.olympiad;
+  let suggestWiden: OlympiadInsights["suggestWiden"] = null;
+  if (range && range.maxLevel < 5) {
+    const top = levels.find((l) => l.level === range.maxLevel)!;
+    if (top.answers >= WIDEN_WINDOW && top.right / top.answers >= WIDEN_SHARE) suggestWiden = { to: (range.maxLevel + 1) as OlyLevel, right: top.right, of: top.answers };
+  }
+  return { pace, papers, levels, suggestWiden };
+}
+
+export function buildInsights(db: Db, profileId: number, now = Date.now(), contest: Contest = "kangaroo"): Insights | null {
   const who = db.select().from(profile).where(eq(profile.id, profileId)).get();
   if (!who) return null;
-  const answers = countedAnswers(db, profileId);
+  const answers = countedAnswers(db, profileId, undefined, contest);
   const scores = scoreAreas(answers, now);
 
-  const snaps = db.select().from(masterySnapshot).where(eq(masterySnapshot.profileId, profileId)).orderBy(asc(masterySnapshot.computedAt)).all();
+  const snaps = db
+    .select()
+    .from(masterySnapshot)
+    .where(and(eq(masterySnapshot.profileId, profileId), eq(masterySnapshot.contest, contest)))
+    .orderBy(asc(masterySnapshot.computedAt))
+    .all();
   const trend = new Map<FocusArea, TrendPoint[]>();
   for (const s of snaps) {
     const list = trend.get(s.focusArea as FocusArea) ?? [];
@@ -127,11 +171,22 @@ export function buildInsights(db: Db, profileId: number, now = Date.now()): Insi
     trend.set(s.focusArea as FocusArea, list);
   }
 
-  const reviews = db.select().from(reviewItem).where(eq(reviewItem.profileId, profileId)).all();
+  const reviews = db
+    .select({ r: reviewItem })
+    .from(reviewItem)
+    .innerJoin(question, eq(question.id, reviewItem.questionId))
+    .where(and(eq(reviewItem.profileId, profileId), eq(question.contest, contest)))
+    .all()
+    .map((x) => x.r);
   const open = reviews.filter((r) => r.box < MASTERED_BOX);
   const waiting = open.filter((r) => r.dueAt > now);
-  const papers = finishedPapers(db, profileId);
-  const sessions = db.select({ n: sql<number>`count(*)` }).from(practiceSession).where(and(eq(practiceSession.profileId, profileId), isNotNull(practiceSession.endedAt))).get()?.n ?? 0;
+  const papers = finishedPapers(db, profileId, contest);
+  const sessions =
+    db
+      .select({ n: sql<number>`count(*)` })
+      .from(practiceSession)
+      .where(and(eq(practiceSession.profileId, profileId), eq(practiceSession.contest, contest), isNotNull(practiceSession.endedAt)))
+      .get()?.n ?? 0;
 
   return {
     profileId,
@@ -146,9 +201,11 @@ export function buildInsights(db: Db, profileId: number, now = Date.now()): Insi
       nextDueAt: waiting.length ? Math.min(...waiting.map((r) => r.dueAt)) : null,
     },
     speed: speedStats(answers),
-    estimate: contestEstimate(papers),
+    estimate: contest === "kangaroo" ? contestEstimate(papers) : null,
     totals: { answers: answers.length, sessions, papers: papers.length },
     tierTarget: tierTarget(answers),
+    contest,
+    ...(contest === "olympiad" ? { olympiad: olympiadInsights(db, profileId, answers) } : {}),
   };
 }
 
@@ -160,7 +217,7 @@ export function buildBenchmarks(db: Db, now = Date.now()): Benchmarks {
   const profiles: BenchmarkProfile[] = [];
   const paperScores = new Map<number, { profileId: number; best: number; max: number }[]>();
   for (const p of students) {
-    const answers = countedAnswers(db, p.id);
+    const answers = countedAnswers(db, p.id, undefined, "kangaroo");
     const scores = scoreAreas(answers, now);
     const papers = finishedPapers(db, p.id);
     const est = contestEstimate(papers);

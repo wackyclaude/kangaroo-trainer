@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import { FOCUS_AREAS, TIERS, type FocusArea, type QuestionDetail, type QuestionSummary } from "../../shared/types";
 import { api, messageOf } from "../api";
+import { useContest, withContest } from "../contest";
 
 const focusVar = (f: FocusArea) => `var(--${f})`;
 
 /** Browse the question bank by year, focus area and tier. Answering comes in the practice modes. */
 export function Explorer() {
+  const [contest] = useContest();
+  const oly = contest === "olympiad";
   const [years, setYears] = useState<number[]>([]);
   const [year, setYear] = useState<string>("2026");
   const [focus, setFocus] = useState<string>("");
@@ -15,17 +18,18 @@ export function Explorer() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    api.get<{ years: { year: number }[] }>("/api/questions/overview").then(
+    api.get<{ years: { year: number }[] }>(withContest("/api/questions/overview", contest)).then(
       (o) => setYears(o.years.map((y) => y.year).reverse()),
       (e) => setError(messageOf(e)),
     );
-  }, []);
+  }, [contest]);
 
   useEffect(() => {
     const qs = new URLSearchParams();
     if (year) qs.set("year", year);
     if (focus) qs.set("focus", focus);
     if (tier) qs.set("tier", tier);
+    if (oly) qs.set("contest", contest);
     api.get<QuestionSummary[]>(`/api/questions?${qs}`).then(
       (l) => {
         setList(l);
@@ -33,13 +37,13 @@ export function Explorer() {
       },
       (e) => setError(messageOf(e)),
     );
-  }, [year, focus, tier]);
+  }, [year, focus, tier, contest, oly]);
 
   const open = (id: string) => api.get<QuestionDetail>(`/api/questions/${id}`).then(setCurrent, (e) => setError(messageOf(e)));
 
   return (
     <section>
-      <h2>Question bank</h2>
+      <h2>Question bank{oly ? " · Olympiad" : ""}</h2>
       <div className="filters">
         <label>
           <span className="visually-hidden">Year</span>
@@ -82,11 +86,11 @@ export function Explorer() {
             type="button"
             className="q-cell"
             aria-current={current?.id === q.id}
-            aria-label={`${q.year} question ${q.number}, ${FOCUS_AREAS[q.focusPrimary]}`}
+            aria-label={`${q.year} question ${q.label}, ${FOCUS_AREAS[q.focusPrimary]}`}
             style={{ ["--focus" as string]: focusVar(q.focusPrimary) }}
             onClick={() => open(q.id)}
           >
-            {year ? q.number : `${String(q.year).slice(2)}·${q.number}`}
+            {year ? q.label : `${String(q.year).slice(2)}·${q.label}`}
           </button>
         ))}
       </div>
@@ -94,7 +98,7 @@ export function Explorer() {
         <article className="q-view panel">
           <div className="row" style={{ marginBottom: 12 }}>
             <h3 style={{ margin: 0 }}>
-              {current.year}, question {current.number}
+              {current.year}, question {current.label}
             </h3>
             <span className="chip" style={{ "--c": focusVar(current.focusPrimary) } as React.CSSProperties}>
               {FOCUS_AREAS[current.focusPrimary]}

@@ -3,7 +3,9 @@ import { z } from "zod";
 import { asc, eq, inArray } from "drizzle-orm";
 import type { Db } from "../db/client.js";
 import { attempt, practiceSession, profile, question, sessionQuestion } from "../db/schema.js";
-import type { SessionSettings } from "../../shared/types.js";
+import { CONTESTS, OLY_LEVELS, type SessionSettings } from "../../shared/types.js";
+import { contestsOf, olympiadOf } from "../practice/contest.js";
+import { olympiadWindow } from "../readiness/olympiad.js";
 import { requireParent, requireUser } from "./guards.js";
 import { buildBenchmarks, buildInsights } from "../insights/store.js";
 import { toCsv as csv } from "../csv.js";
@@ -16,11 +18,14 @@ const iso = (ms: number | null) => (ms === null ? "" : new Date(ms).toISOString(
 export async function insightRoutes(app: FastifyInstance, deps: { db: Db }): Promise<void> {
   const { db } = deps;
 
+  const contestQ = z.object({ contest: z.enum(CONTESTS).default("kangaroo") });
+  const contestOf = (req: { query: unknown }) => contestQ.safeParse(req.query).data?.contest ?? "kangaroo";
+
   // A student's own insights.
   app.get("/api/insights", async (req, reply) => {
     const user = requireUser(req, reply);
     if (!user) return;
-    return buildInsights(db, user.id);
+    return buildInsights(db, user.id, Date.now(), contestOf(req));
   });
 
   // The parent can look at any student.
@@ -30,7 +35,7 @@ export async function insightRoutes(app: FastifyInstance, deps: { db: Db }): Pro
     const p = z.object({ profileId: z.coerce.number().int().positive() }).safeParse(req.params);
     if (!p.success) return reply.code(400).send({ error: "invalid", message: "Unknown profile." });
     if (p.data.profileId !== user.id && user.role !== "parent") return reply.code(404).send({ error: "not_found", message: "Nothing here." });
-    const out = buildInsights(db, p.data.profileId);
+    const out = buildInsights(db, p.data.profileId, Date.now(), contestOf(req));
     if (!out) return reply.code(404).send({ error: "not_found", message: "That profile doesn't exist." });
     return out;
   });
@@ -59,7 +64,7 @@ export async function insightRoutes(app: FastifyInstance, deps: { db: Db }): Pro
   app.get("/api/readiness", async (req, reply) => {
     const user = requireUser(req, reply);
     if (!user) return;
-    const out = buildReadiness(db, user.id);
+    const out = buildReadiness(db, user.id, Date.now(), contestOf(req));
     if (!out) return reply.code(404).send({ error: "not_found", message: "Readiness is for students." });
     return out;
   });
@@ -70,12 +75,46 @@ export async function insightRoutes(app: FastifyInstance, deps: { db: Db }): Pro
     const p = z.object({ profileId: z.coerce.number().int().positive() }).safeParse(req.params);
     if (!p.success) return reply.code(400).send({ error: "invalid", message: "Unknown profile." });
     if (p.data.profileId !== user.id && user.role !== "parent") return reply.code(404).send({ error: "not_found", message: "Nothing here." });
-    const out = buildReadiness(db, p.data.profileId);
+    const out = buildReadiness(db, p.data.profileId, Date.now(), contestOf(req));
     if (!out) return reply.code(404).send({ error: "not_found", message: "That student doesn't exist." });
     return out;
   });
 
+  // The parent turns contests on per student, and sets the Olympiad level range, stretch question, school day and target.
+  const Level = z.union(OLY_LEVELS.map((l) => z.literal(l)) as unknown as [z.ZodLiteral<1>, z.ZodLiteral<2>, z.ZodLiteral<3>, z.ZodLiteral<4>, z.ZodLiteral<5>]);
+  const OlympiadBody = z
+    .object({
+      contests: z.array(z.enum(CONTESTS)).min(1).max(2).optional(),
+      minLevel: Level.optional(),
+      maxLevel: Level.optional(),
+      stretch: z.boolean().optional(),
+      date: IsoDayEarly().nullable().optional(),
+      targetShift: z.number().int().min(-10).max(10).optional(),
+    })
+    .strict();
+  app.put("/api/profiles/:profileId/olympiad", async (req, reply) => {
+    if (!requireParent(req, reply)) return;
+    const p = z.object({ profileId: z.coerce.number().int().positive() }).safeParse(req.params);
+    const body = OlympiadBody.safeParse(req.body);
+    if (!p.success || !body.success) return reply.code(400).send({ error: "invalid", message: "Please check the Olympiad settings." });
+    const row = db.select().from(profileTable).where(eq(profileTable.id, p.data.profileId)).get();
+    if (!row || row.role !== "student") return reply.code(404).send({ error: "not_found", message: "That student doesn't exist." });
+    const cur = olympiadOf(row);
+    const next = { ...cur, ...Object.fromEntries(Object.entries(body.data).filter(([k, v]) => k !== "contests" && v !== undefined)) };
+    if (next.minLevel > next.maxLevel) return reply.code(400).send({ error: "invalid", message: "The lowest level can't be above the highest." });
+    if (next.date) {
+      const w = olympiadWindow(Number(next.date.slice(0, 4)));
+      if (next.date < w.start || next.date > w.end) return reply.code(400).send({ error: "invalid", message: `Round 1 runs from ${w.start} to ${w.end}.` });
+    }
+    const contests = body.data.contests ? [...new Set(body.data.contests)] : contestsOf(row);
+    db.update(profileTable).set({ olympiad: next, contests }).where(eq(profileTable.id, row.id)).run();
+    return { contests, olympiad: olympiadOf({ olympiad: next }), readiness: contests.includes("olympiad") ? buildReadiness(db, row.id, Date.now(), "olympiad") : null };
+  });
+
   // The parent sets the school's contest day and the target score for a student.
+  function IsoDayEarly() {
+    return z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/);
+  }
   const IsoDay = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/).refine((d) => !Number.isNaN(Date.parse(`${d}T12:00:00Z`)) && new Date(`${d}T12:00:00Z`).toISOString().startsWith(d));
   const ContestSettings = z.object({
     contestDate: IsoDay.nullable(),
@@ -150,8 +189,8 @@ export async function insightRoutes(app: FastifyInstance, deps: { db: Db }): Pro
     const { people, attempts } = gather(q.data.profileId);
     const name = new Map(people.map((p) => [p.id, p.nickname]));
     const body = csv(
-      ["attempt_id", "session_id", "profile_id", "nickname", "question_id", "year", "number", "tier", "focus_primary", "focus_secondary", "choice", "answer", "correct", "time_ms", "hint_used", "flagged", "source", "answered_at"],
-      attempts.map(({ a, q }) => [a.id, a.sessionId, a.profileId, name.get(a.profileId), a.questionId, q.year, q.number, q.tier, q.focusPrimary, q.focusSecondary, a.choice, q.answer, a.correct, a.timeMs, a.hintUsed, a.flagged, a.source, iso(a.answeredAt)]),
+      ["attempt_id", "session_id", "profile_id", "nickname", "question_id", "contest", "year", "number", "tier", "focus_primary", "focus_secondary", "choice", "answer", "correct", "time_ms", "hint_used", "flagged", "source", "answered_at"],
+      attempts.map(({ a, q }) => [a.id, a.sessionId, a.profileId, name.get(a.profileId), a.questionId, q.contest, q.year, q.number, q.tier, q.focusPrimary, q.focusSecondary, a.choice, q.answer, a.correct, a.timeMs, a.hintUsed, a.flagged, a.source, iso(a.answeredAt)]),
     );
     return sendFile(reply, `kangaroo-attempts-${stamp()}.csv`, "text/csv", body);
   });
@@ -163,10 +202,10 @@ export async function insightRoutes(app: FastifyInstance, deps: { db: Db }): Pro
     const { people, sessions, counts } = gather(q.data.profileId);
     const name = new Map(people.map((p) => [p.id, p.nickname]));
     const body = csv(
-      ["session_id", "profile_id", "nickname", "mode", "help", "delivery", "paper_year", "questions", "score", "max_score", "started_at", "ended_at"],
+      ["session_id", "profile_id", "nickname", "contest", "mode", "help", "delivery", "paper_year", "questions", "score", "max_score", "started_at", "ended_at"],
       sessions.map((s) => {
         const st = s.settings as SessionSettings;
-        return [s.id, s.profileId, name.get(s.profileId), s.mode, st.help, st.delivery ?? "app", s.paperYear, counts.get(s.id) ?? 0, s.score, s.maxScore, iso(s.startedAt), iso(s.endedAt)];
+        return [s.id, s.profileId, name.get(s.profileId), s.contest, s.mode, st.help, st.delivery ?? "app", s.paperYear, counts.get(s.id) ?? 0, s.score, s.maxScore, iso(s.startedAt), iso(s.endedAt)];
       }),
     );
     return sendFile(reply, `kangaroo-sessions-${stamp()}.csv`, "text/csv", body);

@@ -26,7 +26,8 @@ export function Print({ sessionId, me }: { sessionId: number; me: Me }) {
   if (error) return <div className="message" role="alert">{error}</div>;
   if (!s) return <div aria-busy="true" />;
 
-  const title = modeLabel({ mode: s.mode, paperYear: s.paperYear });
+  const title = modeLabel({ mode: s.mode, paperYear: s.paperYear, contest: s.contest });
+  const oly = s.contest === "olympiad";
   const n = s.questions.length;
   const ready = loaded >= n || waited;
   const isPaperYear = s.mode === "paper";
@@ -64,9 +65,11 @@ export function Print({ sessionId, me }: { sessionId: number; me: Me }) {
 
       <header className="print-head">
         <div>
-          <strong className="print-title">wizSMART · {title}</strong>
+          <strong className="print-title">{oly ? "Olympiad round 1" : "wizSMART"} · {title}</strong>
           <div className="print-sub">
-            {n} questions{isPaperYear ? ", 50 minutes" : ""}, no calculator. Right = {SCORING.correct} points, blank = {SCORING.blank}, wrong = {SCORING.wrong}.
+            {oly
+              ? `${n} questions${isPaperYear ? ", 120 minutes" : ""}, no calculator. A-questions: 2 points, B-questions: 5 points for the exact answer. Wrong or blank = 0.`
+              : `${n} questions${isPaperYear ? ", 50 minutes" : ""}, no calculator. Right = ${SCORING.correct} points, blank = ${SCORING.blank}, wrong = ${SCORING.wrong}.`}
           </div>
         </div>
         <div className="print-name">
@@ -80,7 +83,7 @@ export function Print({ sessionId, me }: { sessionId: number; me: Me }) {
             {/* A full paper keeps the numbers printed in the pictures. A quiz numbers its own questions. */}
             {!isPaperYear && (
               <div className="print-q-label">
-                Question {q.position} <span className="print-q-src">({q.year} Q{q.number} — the number in the picture)</span>
+                Question {q.position} <span className="print-q-src">({q.year} {oly ? q.label : `Q${q.number}`} — the number in the picture)</span>
               </div>
             )}
             <img src={q.imageUrl} alt={`Question ${q.position}`} onLoad={() => setLoaded((x) => x + 1)} onError={() => setLoaded((x) => x + 1)} />
@@ -91,16 +94,24 @@ export function Print({ sessionId, me }: { sessionId: number; me: Me }) {
       <section className="print-sheet">
         <h2>Answer sheet · {title}</h2>
         <p>Name: ____________________ &nbsp; Date: ____________</p>
-        <p>Circle one letter for each question. Leave it empty if you don't know: a blank still scores {SCORING.blank} point.</p>
+        <p>
+          {oly
+            ? "A-questions: circle one letter. B-questions: write the exact, simplified answer in the box."
+            : `Circle one letter for each question. Leave it empty if you don't know: a blank still scores ${SCORING.blank} point.`}
+        </p>
         <ol className="sheet-cols">
           {s.questions.map((q) => (
             <li key={q.position}>
-              <span className="sheet-n">{q.position}</span>
-              {CHOICES.map((c) => (
-                <span key={c} className="bubble">
-                  {c}
-                </span>
-              ))}
+              <span className="sheet-n">{oly && isPaperYear ? q.label : q.position}</span>
+              {q.part === "B" ? (
+                <span className="write-box" />
+              ) : (
+                CHOICES.map((c) => (
+                  <span key={c} className="bubble">
+                    {c}
+                  </span>
+                ))
+              )}
             </li>
           ))}
         </ol>
@@ -112,11 +123,11 @@ export function Print({ sessionId, me }: { sessionId: number; me: Me }) {
           <ol className="key-cols">
             {key.map((k) => (
               <li key={k.position}>
-                <span className="sheet-n">{k.position}</span> <strong>{k.voided ? "any" : k.answer}</strong>
+                <span className="sheet-n">{oly && isPaperYear ? k.label : k.position}</span> <strong>{k.voided ? "any" : k.answer}</strong>
                 {!isPaperYear && (
                   <span className="print-q-src">
                     {" "}
-                    {k.year} Q{k.number}
+                    {k.year} {oly ? k.label : `Q${k.number}`}
                   </span>
                 )}
               </li>

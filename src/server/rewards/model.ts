@@ -10,6 +10,10 @@ export interface FinishedSession {
   score: number | null;
   maxScore: number | null;
   questions: number;
+  /** Missing = Kangaroo. */
+  contest?: "kangaroo" | "olympiad";
+  /** Olympiad full paper: that year's klas 1–3 cutoff. */
+  cutoff?: number | null;
 }
 
 export const WEEK_GOAL = 3;
@@ -124,6 +128,7 @@ export function replayRewards(answers: Answer[], sessions: FinishedSession[], no
         challengeRight.add(a.questionId);
         bump("challenge-5", challengeRight.size, a.answeredAt, sid);
       }
+      if (a.correct && a.part === "B") bump("oly-first-b", 1, a.answeredAt, sid);
       if (a.correct && !a.hintUsed) {
         const set = rightNoHint.get(a.primary)!;
         set.add(a.questionId);
@@ -140,16 +145,22 @@ export function replayRewards(answers: Answer[], sessions: FinishedSession[], no
       finished++;
       bump("first-quiz", finished, s.endedAt, s.id);
       if (s.mode === "paper" && s.score !== null) {
-        bump("first-paper", 1, s.endedAt, s.id);
         const mine = seen.filter((a) => a.sessionId === s.id);
         if (mine.length >= s.questions && mine.every((a) => !a.blank)) bump("no-skip", 1, s.endedAt, s.id);
+      }
+      if (s.mode === "paper" && s.score !== null && s.contest === "olympiad") {
+        bump("oly-first-paper", 1, s.endedAt, s.id);
+        if (s.cutoff != null && s.score >= s.cutoff) bump("oly-cutoff", 1, s.endedAt, s.id);
+      } else if (s.mode === "paper" && s.score !== null) {
+        bump("first-paper", 1, s.endedAt, s.id);
         bump("score-80", s.score, s.endedAt, s.id);
         bump("score-100", s.score, s.endedAt, s.id);
         if (bestPaper !== null && s.score > bestPaper) personalBests.set(s.id, { score: s.score, previous: bestPaper });
         bestPaper = Math.max(bestPaper ?? s.score, s.score);
       }
       if (!earned.has("ready")) {
-        const ready = scoreAreas(seen, s.endedAt).some((x) => x.level === "competition-ready");
+        // Per contest: a Kangaroo area and an Olympiad area are different skills.
+        const ready = (["kangaroo", "olympiad"] as const).some((c) => scoreAreas(seen.filter((a) => (a.contest ?? "kangaroo") === c), s.endedAt).some((x) => x.level === "competition-ready"));
         if (ready) bump("ready", 1, s.endedAt, s.id);
       }
     }

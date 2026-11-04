@@ -19,6 +19,14 @@ export interface Answer {
   timeMs: number | null;
   answeredAt: number;
   sessionId: number | null;
+  /** Olympiad extras (missing for Kangaroo). */
+  contest?: "kangaroo" | "olympiad";
+  part?: "A" | "B" | null;
+  points?: number | null;
+  difficulty?: number | null;
+  klas1?: number | null;
+  /** The session was a full paper. */
+  paper?: boolean;
 }
 
 export const FOCUS_KEYS = Object.keys(FOCUS_AREAS) as FocusArea[];

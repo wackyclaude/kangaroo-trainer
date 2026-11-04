@@ -47,7 +47,7 @@ export function importQuestions(db: Db, contentDir: string, now = Date.now()): I
   const raw = fs.readFileSync(file);
   const digest = crypto.createHash("sha256").update(raw).digest("hex");
   const prev = db.select().from(appMeta).where(eq(appMeta.key, "content_sha256")).get();
-  const existing = db.select({ n: count() }).from(question).get()?.n ?? 0;
+  const existing = db.select({ n: count() }).from(question).where(eq(question.contest, "kangaroo")).get()?.n ?? 0;
   if (prev?.value === digest && existing > 0) return { status: "unchanged", count: existing };
 
   const bank = BankIn.parse(JSON.parse(raw.toString("utf8")));

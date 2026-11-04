@@ -9,19 +9,19 @@ export function longDay(d: string): string {
 }
 const shortDay = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "long", timeZone: "UTC" });
 
-function countdownLine(c: Readiness["contest"]): string {
+function countdownLine(c: Readiness["contest"], kind: Readiness["kind"] = "kangaroo"): string {
   if (c.phase === "today") return "It's contest day. Good luck, you've got this!";
-  if (c.phase === "open") return `The contest is on at schools now, until ${shortDay(c.windowEnd)}.`;
-  if (c.phase === "done") return "Contest done. Results come out around mid-May.";
+  if (c.phase === "open") return `${kind === "olympiad" ? "Round 1" : "The contest"} is on at schools now, until ${shortDay(c.windowEnd)}.`;
+  if (c.phase === "done") return kind === "olympiad" ? "Round 1 done. The school hears the results a few weeks later." : "Contest done. Results come out around mid-May.";
   if (c.daysLeft === 1) return "Tomorrow!";
   const weeks = Math.floor(c.daysLeft / 7);
   return weeks >= 2 ? `That's about ${weeks} weeks.` : "Nearly there!";
 }
 
 /** One line for the parent's overview. */
-export function countdownShort(c: Readiness["contest"]): string {
+export function countdownShort(c: Readiness["contest"], kind: Readiness["kind"] = "kangaroo"): string {
   if (c.phase === "countdown") return `${longDay(c.date)}: ${c.daysLeft} day${c.daysLeft === 1 ? "" : "s"} to go${c.chosen ? "" : " (first day of the window)"}.`;
-  return `${longDay(c.date)}. ${countdownLine(c)}`;
+  return `${longDay(c.date)}. ${countdownLine(c, kind)}`;
 }
 
 /** Date and days to go. */
@@ -32,7 +32,7 @@ export function Countdown({ r, forParent }: { r: Readiness; forParent?: boolean 
     <section className="panel side-card countdown" aria-labelledby="countdown-h">
       <div className="side-head">
         <Mascot mood={c.phase === "today" ? "cheer" : "calm"} size={44} headOnly />
-        <h2 id="countdown-h">Kangaroo contest</h2>
+        <h2 id="countdown-h">{r.kind === "olympiad" ? "Olympiad round 1" : "Kangaroo contest"}</h2>
       </div>
       <p className="contest-day">{longDay(c.date)}</p>
       {counting && (
@@ -40,7 +40,7 @@ export function Countdown({ r, forParent }: { r: Readiness; forParent?: boolean 
           <strong>{c.daysLeft}</strong> day{c.daysLeft === 1 ? "" : "s"} to go
         </p>
       )}
-      <p className="muted small-line">{countdownLine(c)}</p>
+      <p className="muted small-line">{countdownLine(c, r.kind)}</p>
       {!c.chosen && c.phase === "countdown" && (
         <p className="muted small-line">
           {forParent
@@ -48,6 +48,7 @@ export function Countdown({ r, forParent }: { r: Readiness; forParent?: boolean 
             : `Schools pick a day between ${shortDay(c.windowStart)} and ${shortDay(c.windowEnd)}.`}
         </p>
       )}
+      {c.nextRound && <p className="muted small-line">Round 2 (for the best): {longDay(c.nextRound)}.</p>}
     </section>
   );
 }

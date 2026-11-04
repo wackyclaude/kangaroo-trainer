@@ -5,6 +5,7 @@ import { loadConfig } from "./config.js";
 import { openDb } from "./db/client.js";
 import { profile } from "./db/schema.js";
 import { importQuestions } from "./content/import.js";
+import { importOlympiad } from "./content/olympiad.js";
 import { scheduleBackups } from "./backup.js";
 import { purgeExpired } from "./auth/session.js";
 import { buildApp } from "./app.js";
@@ -14,6 +15,7 @@ const config = loadConfig();
 const { db, sqlite } = openDb(path.join(config.dataDir, "kt.db"), process.env.MIGRATIONS_DIR);
 
 const imported = importQuestions(db, config.contentDir);
+const olympiad = importOlympiad(db, config.contentDir);
 // Mistake memory and maturity trends are rebuilt from the answer log (this also covers practice done before M4).
 const backfilled = backfillInsights(db);
 
@@ -30,7 +32,7 @@ const app = await buildApp({
   logLevel: config.logLevel,
 });
 
-app.log.info({ questions: imported, insightsBackfilled: backfilled }, "question bank");
+app.log.info({ questions: imported, olympiad, insightsBackfilled: backfilled }, "question bank");
 if (!hasParent) {
   app.log.warn(`FIRST-TIME SETUP: open the app and enter this setup code to create the parent profile: ${setupCode}`);
 }
