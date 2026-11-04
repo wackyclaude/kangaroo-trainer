@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { FOCUS_AREAS, TIERS, type FocusArea, type HelpLevel, type Tier } from "../../shared/types";
+import { FOCUS_AREAS, OLY_LEVEL_TEXT, OLY_PARTS, TIERS, type FocusArea, type HelpLevel, type OlyPart, type Tier } from "../../shared/types";
+import { useContest, useLevelRange, withContest } from "../contest";
 import { api, messageOf } from "../api";
 import { Chips, Segmented } from "../components/Segmented";
 import { focusColor, go, HELP_TEXT } from "../format";
@@ -13,6 +14,11 @@ export function StartFocus() {
     return m?.[1] ? (m[1].split(",").filter((k) => (keys as string[]).includes(k)) as FocusArea[]) : [];
   });
   const [tiers, setTiers] = useState<Tier[]>([]);
+  const [contest] = useContest();
+  const oly = contest === "olympiad";
+  const range = useLevelRange();
+  const [levels, setLevels] = useState<string[]>([]);
+  const [parts, setParts] = useState<OlyPart[]>([]);
   const [count, setCount] = useState("10");
   const [help, setHelp] = useState<HelpLevel>("practice");
   const [timer, setTimer] = useState("off");
@@ -21,8 +27,8 @@ export function StartFocus() {
   const [coverage, setCoverage] = useState<{ total: number; withSolutions: number } | null>(null);
 
   useEffect(() => {
-    api.get<{ total: number; withSolutions: number }>("/api/solutions/coverage").then(setCoverage, () => undefined);
-  }, []);
+    api.get<{ total: number; withSolutions: number }>(withContest("/api/solutions/coverage", contest)).then(setCoverage, () => undefined);
+  }, [contest]);
 
   const start = async (onPaper = false) => {
     setBusy(true);
@@ -30,9 +36,11 @@ export function StartFocus() {
     try {
       const { id } = await api.post<{ id: number }>("/api/sessions", {
         mode: "focus",
+        contest,
         help,
         focus,
-        tiers,
+        tiers: oly ? [] : tiers,
+        ...(oly ? { levels: levels.map(Number), parts } : {}),
         count: Number(count),
         timerMinutes: timer === "off" ? null : Number(timer),
         delivery: onPaper ? "paper" : "app",
@@ -50,7 +58,7 @@ export function StartFocus() {
         <button type="button" className="btn quiet" onClick={() => go("#/")}>
           ← Back
         </button>
-        <h1>Focus quiz</h1>
+        <h1>Focus quiz{oly ? " · Olympiad" : ""}</h1>
         <p className="muted">Choose what to practise. Questions you got right in the last 30 days are saved for later.</p>
       </div>
 
@@ -60,8 +68,23 @@ export function StartFocus() {
           Pick one or more, or none for a mix of everything.
         </p>
         <Chips label="Focus areas" values={focus} onChange={setFocus} colorOf={focusColor} options={(Object.keys(FOCUS_AREAS) as FocusArea[]).map((f) => ({ value: f, label: FOCUS_AREAS[f] }))} />
-        <h2 style={{ marginTop: 12 }}>How hard?</h2>
-        <Chips label="Difficulty" values={tiers} onChange={setTiers} options={TIERS.map((t) => ({ value: t, label: TIER_LABEL[t] }))} />
+        {oly ? (
+          <>
+            <h2 style={{ marginTop: 12 }}>Which part?</h2>
+            <Chips label="Part" values={parts} onChange={setParts} options={OLY_PARTS.map((p) => ({ value: p, label: p === "A" ? "A: multiple choice" : "B: type the answer" }))} />
+            <h2 style={{ marginTop: 12 }}>Which levels?</h2>
+            <Chips label="Levels" values={levels} onChange={setLevels} options={range.map((l) => ({ value: String(l), label: `Level ${l}` }))} />
+            <p className="muted small-line" style={{ margin: 0 }}>
+              None picked = all of {range.length === 1 ? `level ${range[0]}` : `levels ${range[0]}–${range[range.length - 1]}`} (the range your parent set). Level 1: {OLY_LEVEL_TEXT[1]}; level{" "}
+              {range[range.length - 1]}: {OLY_LEVEL_TEXT[range[range.length - 1]!]}.
+            </p>
+          </>
+        ) : (
+          <>
+            <h2 style={{ marginTop: 12 }}>How hard?</h2>
+            <Chips label="Difficulty" values={tiers} onChange={setTiers} options={TIERS.map((t) => ({ value: t, label: TIER_LABEL[t] }))} />
+          </>
+        )}
       </section>
 
       <section className="panel stack">
@@ -77,7 +100,7 @@ export function StartFocus() {
         <p className="muted" style={{ margin: 0 }}>
           {HELP_TEXT[help].line}
         </p>
-        {help === "learn" && coverage && coverage.withSolutions < coverage.total && (
+        {!oly && help === "learn" && coverage && coverage.withSolutions < coverage.total && (
           <div className="message ok">
             Learn mode only picks questions that already have a step-by-step solution ({coverage.withSolutions} of {coverage.total} so far).
           </div>

@@ -8,6 +8,8 @@ import { BadgeMedal, TileIcon } from "../components/Art";
 import { MascotSays, type Mood } from "../components/Mascot";
 import { RewardStrip } from "../components/RewardStrip";
 import { Countdown, ReadinessCard } from "../components/Readiness";
+import { ContestSwitch } from "../components/ContestSwitch";
+import { useContest, withContest } from "../contest";
 
 /** What Roo says on the home screen. Encouraging, never about other children. */
 function greeting(me: Me, ins: Insights | null, r: Rewards | null): { mood: Mood; text: string } {
@@ -21,12 +23,15 @@ function greeting(me: Me, ins: Insights | null, r: Rewards | null): { mood: Mood
 
 interface Open {
   id: number;
+  contest?: string;
   mode: string;
   paperYear: number | null;
   delivery?: string;
 }
 
 export function StudentHome({ me }: { me: Me }) {
+  const [contest, setContest, contests] = useContest();
+  const oly = contest === "olympiad";
   const [open, setOpen] = useState<Open | null>(null);
   const [recent, setRecent] = useState<SessionListItem[]>([]);
   const [ins, setIns] = useState<Insights | null>(null);
@@ -36,11 +41,15 @@ export function StudentHome({ me }: { me: Me }) {
 
   useEffect(() => {
     api.get<Open | null>("/api/sessions-open").then(setOpen, () => undefined);
-    api.get<SessionListItem[]>("/api/sessions?limit=6").then(setRecent, () => undefined);
-    api.get<Insights>("/api/insights").then(setIns, () => undefined);
     api.get<Rewards>("/api/rewards").then(setRewards, () => undefined);
-    api.get<Readiness>("/api/readiness").then(setReady, () => undefined);
   }, []);
+  useEffect(() => {
+    setIns(null);
+    setReady(null);
+    api.get<SessionListItem[]>(withContest("/api/sessions?limit=6", contest)).then(setRecent, () => undefined);
+    api.get<Insights>(withContest("/api/insights", contest)).then(setIns, () => undefined);
+    api.get<Readiness>(withContest("/api/readiness", contest)).then(setReady, () => undefined);
+  }, [contest]);
 
   const finished = recent.filter((r) => r.endedAt);
   const due = ins?.mistakes.due ?? 0;
@@ -63,18 +72,19 @@ export function StudentHome({ me }: { me: Me }) {
         </aside>
       )}
       <div className="home-main stack" style={{ gap: 32 }}>
+      {contests.length > 1 && <ContestSwitch value={contest} onChange={setContest} options={contests} />}
       {rewards && <RewardStrip r={rewards} />}
 
       {carryOn && (
         <button type="button" className="panel tile carry-on" onClick={() => go(`#/quiz/${carryOn.id}`)}>
           <span className="big">Carry on where you stopped</span>
-          <span className="muted">{modeLabel({ mode: carryOn.mode, paperYear: carryOn.paperYear })} is still open.</span>
+          <span className="muted">{modeLabel({ mode: carryOn.mode, paperYear: carryOn.paperYear, contest: carryOn.contest })} is still open.</span>
         </button>
       )}
       {waitingPapers.map((w) => (
         <button key={w.id} type="button" className="panel tile carry-on" onClick={() => go(`#/answer-sheet/${w.id}`)}>
           <span className="big">Type in your paper answers</span>
-          <span className="muted">{modeLabel({ mode: w.mode, paperYear: w.paperYear, questions: w.questions })} was printed {when(w.startedAt)}. Copy your answers in so they count.</span>
+          <span className="muted">{modeLabel({ mode: w.mode, paperYear: w.paperYear, questions: w.questions, contest: w.contest })} was printed {when(w.startedAt)}. Copy your answers in so they count.</span>
         </button>
       ))}
 
@@ -103,8 +113,8 @@ export function StudentHome({ me }: { me: Me }) {
           <span className="tile-icon">
             <TileIcon kind="paper" />
           </span>
-          <span className="big">Full past paper</span>
-          <span className="muted">24 real questions, 50 minutes, just like the contest.</span>
+          <span className="big">{oly ? "Full Olympiad paper" : "Full past paper"}</span>
+          <span className="muted">{oly ? "8 + 4 real questions, 120 minutes, compared with that year's cutoff." : "24 real questions, 50 minutes, just like the contest."}</span>
         </button>
         <button type="button" className="panel tile go-tile" onClick={() => go("#/focus")}>
           <span className="tile-icon">
@@ -128,6 +138,11 @@ export function StudentHome({ me }: { me: Me }) {
             ))}
           </span>
           {ins.estimate && <span className="muted">Contest score estimate: about {ins.estimate.score} out of 120.</span>}
+          {ins.olympiad?.pace && (
+            <span className="muted">
+              Cutoff pace over your last {ins.olympiad.pace.questions} questions: {Math.round(ins.olympiad.pace.relative * 100)}%, like about {ins.olympiad.pace.fullPaper} of 36.
+            </span>
+          )}
         </button>
       )}
 

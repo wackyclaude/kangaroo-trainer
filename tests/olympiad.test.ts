@@ -138,7 +138,7 @@ describe("Olympiad short quizzes", () => {
     const b1 = s.questions.find((q: { label: string }) => q.label === "B1");
     const fb = (await answer(id, b1.position, "18/4")).json();
     expect(fb).toMatchObject({ saved: true, correct: true, answer: "9/2", reveal: { level: 3, officialUrl: "/content/olympiad/sol/2026-B1.png", stats: { klas1: 22 } } });
-    expect(fb.reveal.note).toMatch(/simply/);
+    expect(fb.reveal.note).toBe("In the contest, write it as simply as you can: 9/2.");
   });
 
   it("keeps to the parent's level range, and the student can only narrow it", async () => {
@@ -196,6 +196,10 @@ describe("Olympiad short quizzes", () => {
     expect(ins.olympiad.pace.questions).toBe(20);
     const kangaroo = (await app.inject({ url: "/api/insights", headers: { cookie: mira } })).json();
     expect(kangaroo.totals.answers).toBe(0); // the contests are kept apart
+    const ready = (await app.inject({ url: `/api/readiness/${miraId}?contest=olympiad`, headers: { cookie: parent } })).json();
+    expect(ready.suggestWiden).toEqual({ to: 3, right: 15, of: 20 });
+    const accepted = await app.inject({ method: "PUT", url: `/api/profiles/${miraId}/olympiad`, headers: { cookie: parent }, payload: { maxLevel: 3 } });
+    expect(accepted.json().readiness.suggestWiden).toBeNull();
   });
 });
 

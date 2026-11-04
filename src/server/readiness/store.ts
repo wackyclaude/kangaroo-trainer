@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import type { Db } from "../db/client.js";
 import { profile, question } from "../db/schema.js";
 import { DEFAULT_TARGET_SCORE, FOCUS_AREAS, type Contest, type FocusArea, type Readiness } from "../../shared/types.js";
-import { buildInsights, countedAnswers, finishedPapers } from "../insights/store.js";
+import { buildInsights, countedAnswers, finishedPapers, olympiadInsights } from "../insights/store.js";
 import { dayKey } from "../rewards/model.js";
 import { HOME_TIME_ZONE } from "../rewards/store.js";
 import { contestFor, readiness } from "./model.js";
@@ -29,7 +29,7 @@ export function buildReadiness(db: Db, profileId: number, now = Date.now(), cont
       .sort((a, b) => a.endedAt - b.endedAt)
       .map((x) => ({ score: x.score, cutoff: facts.get(x.year!)!.cutoff! }));
     const r = olympiadReadiness({ areas, papers, distinctQuestions: new Set(answers.map((a) => a.questionId)).size, shift: o.targetShift });
-    return { kind: "olympiad", contest: olympiadContestFor(today, o.date), target: o.targetShift, ...r };
+    return { kind: "olympiad", contest: olympiadContestFor(today, o.date), target: o.targetShift, ...r, suggestWiden: olympiadInsights(db, profileId, answers).suggestWiden };
   }
   const ins = buildInsights(db, profileId, now, "kangaroo");
   if (!ins) return null;

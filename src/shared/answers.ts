@@ -301,7 +301,7 @@ export function checkAnswer(spec: AnswerSpec, input: string, unit?: string | nul
   const typed = stripUnit(normalise(input), unit);
   if (!typed) return { correct: false, readable: false, note: null };
   const m = match(spec, typed);
-  if (m.ok) return { correct: true, readable: true, note: m.simplified ? null : "Right! In the contest, write it as simply as you can (for example 9/2, not 18/4)." };
+  if (m.ok) return { correct: true, readable: true, note: m.simplified ? null : "In the contest, write it as simply as you can (9/2, not 18/4)." };
   if (spec.kind === "set") {
     const part = matchUnordered(spec.values, splitItems(unwrap(typed)));
     if (part.found > 0 && part.found < spec.values.length) return { correct: false, readable: m.readable, note: `You found ${part.found} of the ${spec.values.length} answers.` };

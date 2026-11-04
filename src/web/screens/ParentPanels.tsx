@@ -120,6 +120,7 @@ interface Student {
 export function PrintPanel({ students }: { students: Student[] }) {
   const [who, setWho] = useState<number | null>(students[0]?.id ?? null);
   const [kind, setKind] = useState<"paper" | "focus">("paper");
+  const [contest, setContest] = useState<"kangaroo" | "olympiad">("kangaroo");
   const [years, setYears] = useState<number[]>([]);
   const [year, setYear] = useState<number | null>(null);
   const [focus, setFocus] = useState<FocusArea[]>([]);
@@ -128,11 +129,11 @@ export function PrintPanel({ students }: { students: Student[] }) {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    api.get<{ year: number }[]>("/api/papers").then((p) => {
+    api.get<{ year: number }[]>(contest === "olympiad" ? "/api/papers?contest=olympiad" : "/api/papers").then((p) => {
       setYears(p.map((x) => x.year));
       setYear(p[0]?.year ?? null);
     }, () => undefined);
-  }, []);
+  }, [contest]);
   useEffect(() => {
     if (who === null && students[0]) setWho(students[0].id);
   }, [students, who]);
@@ -144,8 +145,8 @@ export function PrintPanel({ students }: { students: Student[] }) {
     try {
       const body =
         kind === "paper"
-          ? { mode: "paper", paperYear: year, help: "test", timed: false, delivery: "paper", forProfileId: who }
-          : { mode: "focus", help: "test", focus, count: Number(count), delivery: "paper", forProfileId: who };
+          ? { mode: "paper", paperYear: year, help: "test", timed: false, delivery: "paper", forProfileId: who, contest }
+          : { mode: "focus", help: "test", focus, count: Number(count), delivery: "paper", forProfileId: who, contest };
       const { id } = await api.post<{ id: number }>("/api/sessions", body);
       go(`#/print/${id}`);
     } catch (e) {
@@ -167,6 +168,10 @@ export function PrintPanel({ students }: { students: Student[] }) {
           <div className="setting">
             <span className="setting-name">For</span>
             <Segmented label="Student" value={String(who ?? "")} onChange={(v) => setWho(Number(v))} options={students.map((s) => ({ value: String(s.id), label: `${s.avatar} ${s.nickname}` }))} />
+          </div>
+          <div className="setting">
+            <span className="setting-name">Contest</span>
+            <Segmented label="Contest" value={contest} onChange={setContest} options={[{ value: "kangaroo", label: "Kangaroo" }, { value: "olympiad", label: "Olympiad" }]} />
           </div>
           <div className="setting">
             <span className="setting-name">What</span>

@@ -35,15 +35,17 @@ export function go(hash: string) {
   window.location.hash = hash;
 }
 
-export function modeLabel(r: { mode: string; paperYear: number | null; questions?: number; delivery?: string }): string {
+export function modeLabel(r: { mode: string; paperYear: number | null; questions?: number; delivery?: string; contest?: string }): string {
+  const oly = r.contest === "olympiad";
   const base =
-    r.mode === "paper"
-      ? `${r.paperYear} paper`
+    (oly && r.mode !== "paper" ? "Olympiad · " : "") +
+    (r.mode === "paper"
+      ? `${r.paperYear} ${oly ? "Olympiad " : ""}paper`
       : r.mode === "mistakes"
         ? "Fix my mistakes"
         : r.mode === "smart"
           ? "Smart mix"
-          : `Focus quiz${r.questions ? ` · ${r.questions} questions` : ""}`;
+          : `Focus quiz${r.questions ? ` · ${r.questions} questions` : ""}`);
   return r.delivery === "paper" ? `${base} · on paper` : base;
 }
 
@@ -55,3 +57,9 @@ export function minutes(ms: number | null): string {
   const s = Math.round(ms / 1000);
   return s < 60 ? `${s} s` : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")} min`;
 }
+
+/** "A3" style label, or the plain number for Kangaroo. */
+export const qLabel = (q: { label?: string; number: number }) => q.label ?? String(q.number);
+
+/** Klas 4 and 5 in the reports are vwo. */
+export const CLASS_NAMES = { klas1: "Klas 1", klas2: "Klas 2", klas3: "Klas 3", klas4: "4-vwo", klas5: "5-vwo" } as const;

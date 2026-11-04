@@ -158,7 +158,11 @@ const hasSolution = (q: QuestionRow) => solutionSteps(q) !== null;
 export function mark(q: QuestionRow, choice: string | null): { correct: boolean; note: string | null; readable: boolean } {
   if (q.voidNote) return { correct: true, note: null, readable: true }; // voided by the organisers: everyone gets the points
   if (choice === null) return { correct: false, note: null, readable: true };
-  if (q.part === "B" && q.answerSpec) return checkAnswer(q.answerSpec, choice, q.answerUnit);
+  if (q.part === "B" && q.answerSpec) {
+    const c = checkAnswer(q.answerSpec, choice, q.answerUnit);
+    // Name the simplest form: the official answer.
+    return c.correct && c.note ? { ...c, note: `In the contest, write it as simply as you can: ${q.answer}.` } : c;
+  }
   return { correct: choice === q.answer, note: null, readable: true };
 }
 

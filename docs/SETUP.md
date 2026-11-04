@@ -15,6 +15,7 @@ Everything lives in one folder, for example `Documents/Kangaroo`:
 | Folder | What it is |
 | --- | --- |
 | `bank/` | The question bank (pictures + `questions.json`). The app can only read it. |
+| `bank/olympiad/` | Optional: the Olympiad round-1 bank (`questions.json`, `img/`, `sol/` with the official solutions). |
 | `kt/` | This code. |
 | `kt-data/` | The database (profiles, answers, scores). Created on first start. |
 | `backups/` | One backup per day, the last 14 days. Created on first start. |
@@ -92,6 +93,7 @@ The iPad must be on the same Wi-Fi as the Mac, and the Mac must be awake.
 - **Stop:** `docker compose down` (in the `kt` folder). Your data stays.
 - **Monthly security refresh:** `docker compose build --pull`, then `docker compose up -d`. This fetches the latest patched base image even when the code hasn't changed.
 - **Update** after new code arrives: `git pull`, then `docker compose up -d --build`. The iPad app picks up the new version the next time it is opened (close it fully and reopen if it looks old).
+- **Olympiad:** put the Olympiad bank in `bank/olympiad/`, restart (`docker compose up -d`), then in the parent corner tick **Olympiad** for a student. The student home then shows a Kangaroo / Olympiad switch.
 - **See what's happening:** `docker compose logs -f app` (Ctrl-C to stop watching).
 
 ## Backups and restore

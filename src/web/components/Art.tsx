@@ -162,6 +162,9 @@ const MEDAL_FILL: Partial<Record<BadgeId, string>> = {
   "area-LOG": BERRY,
   "area-CMB": TEAL,
   ready: SUN,
+  "oly-first-paper": TEAL,
+  "oly-first-b": LILAC,
+  "oly-cutoff": GRASS,
 };
 
 function Txt({ t, size = 15 }: { t: string; size?: number }) {
@@ -205,6 +208,12 @@ function medalSymbol(id: BadgeId) {
       );
     case "ready":
       return <path d="M24 22 H40 V28 a8 8 0 0 1 -16 0 Z M32 36 V41 M26 43 H38" {...M} />;
+    case "oly-first-paper":
+      return <Txt t="36" size={16} />;
+    case "oly-first-b":
+      return <Txt t="B✓" size={14} />;
+    case "oly-cutoff":
+      return <path d="M20 40 H44 M24 40 V30 M32 40 V24 M40 40 V18 M20 28 H44" {...M} />;
     default: {
       const area = id.slice(5) as FocusArea;
       return (

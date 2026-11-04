@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { CHOICES, type AnswerFeedback, type Choice, type SavedAnswer, type SessionState } from "../../shared/types";
+import { CHOICES, type AnswerFeedback, type SavedAnswer, type SessionState } from "../../shared/types";
 import { api, ApiFailure, messageOf } from "../api";
 import { ScratchPad } from "../components/ScratchPad";
 import { Steps } from "../components/Steps";
 import { MascotSays } from "../components/Mascot";
 import { clock, focusColor, focusName, go, modeLabel } from "../format";
+import { MathKeypad, RevealBlock } from "../components/Olympiad";
 
 type Local = Omit<SavedAnswer, "position">;
 
@@ -21,6 +22,8 @@ export function Runner({ sessionId }: { sessionId: number }) {
   const [scratch, setScratch] = useState(false);
   const [scratchKey, setScratchKey] = useState(0);
   const [confirmFinish, setConfirmFinish] = useState(false);
+  // What is typed in the keypad for each B-question (kept while moving between questions).
+  const [typed, setTyped] = useState<Map<number, string>>(new Map());
 
   // Time per question: `spent` is everything measured on this device, `sent` what the server already has.
   const spent = useRef(new Map<number, number>());
@@ -141,7 +144,7 @@ export function Runner({ sessionId }: { sessionId: number }) {
     if (remaining !== null && remaining <= 0) void finish();
   }, [remaining, finish]);
 
-  const submit = async (choice: Choice | null) => {
+  const submit = async (choice: string | null) => {
     if (!s || busy || locked) return;
     stopClock();
     const timeMs = Math.max(0, unsentFor(pos));
@@ -156,7 +159,7 @@ export function Runner({ sessionId }: { sessionId: number }) {
         flagged: flags.has(pos),
       });
       sent.current.set(pos, spent.current.get(pos) ?? 0);
-      setAnswers((m) => new Map(m).set(pos, { choice, flagged: flags.has(pos), correct: fb.correct, answer: fb.answer, steps: fb.steps }));
+      setAnswers((m) => new Map(m).set(pos, { choice, flagged: flags.has(pos), correct: fb.correct, answer: fb.answer, steps: fb.steps, reveal: fb.reveal }));
       if (isTest) {
         const next = s.questions.find((q) => q.position > pos && !answers.has(q.position) && q.position !== pos);
         if (next) setTimeout(() => setPos(next.position), 250);
@@ -199,7 +202,10 @@ export function Runner({ sessionId }: { sessionId: number }) {
   const answeredCount = answers.size;
   const last = pos === total;
   const lowTime = remaining !== null && remaining < 5 * 60_000;
-  const title = modeLabel({ mode: s.mode, paperYear: s.paperYear });
+  const title = modeLabel({ mode: s.mode, paperYear: s.paperYear, contest: s.contest });
+  const oly = s.contest === "olympiad";
+  const isB = current.part === "B";
+  const typedNow = typed.get(pos) ?? currentAnswer?.choice ?? "";
 
   return (
     <div className="runner">
@@ -208,7 +214,7 @@ export function Runner({ sessionId }: { sessionId: number }) {
           <h1 className="runner-title">{title}</h1>
           <span className="muted">
             {" "}
-            · Question {pos} of {total}
+            · Question {oly ? `${current.label} (${pos} of ${total})` : `${pos} of ${total}`}
           </span>
         </div>
         <div className="row">
@@ -238,7 +244,7 @@ export function Runner({ sessionId }: { sessionId: number }) {
               aria-label={`Question ${q.position}${answers.has(q.position) ? ", answered" : ""}${flags.has(q.position) ? ", flagged" : ""}`}
               onClick={() => setPos(q.position)}
             >
-              {q.position}
+              {oly ? q.label : q.position}
             </button>
           ))}
         </nav>
@@ -250,6 +256,11 @@ export function Runner({ sessionId }: { sessionId: number }) {
             {focusName(current.focusPrimary)}
           </span>
           {s.mode !== "paper" && <span className="chip outline">{current.year}</span>}
+          {oly && (
+            <span className="chip outline">
+              {current.label} · {current.points} points
+            </span>
+          )}
           <span className="spacer" />
           <button type="button" className={`icon-btn${flags.has(pos) ? " on" : ""}`} aria-pressed={flags.has(pos)} onClick={() => setFlags((f) => {
             const n = new Set(f);
@@ -279,25 +290,46 @@ export function Runner({ sessionId }: { sessionId: number }) {
           </MascotSays>
         )}
 
-        <div className="answers" role="group" aria-label="Your answer">
-          {CHOICES.map((c) => {
-            const picked = currentAnswer?.choice === c;
-            const isRight = locked && currentAnswer?.answer === c;
-            const isWrongPick = locked && picked && !currentAnswer?.correct;
-            return (
-              <button
-                key={c}
-                type="button"
-                className={`btn answer${picked ? " picked" : ""}${isRight ? " right" : ""}${isWrongPick ? " wrong" : ""}`}
-                aria-pressed={picked}
-                disabled={busy || locked}
-                onClick={() => submit(c)}
-              >
-                {c}
-              </button>
-            );
-          })}
-        </div>
+        {isB ? (
+          locked ? (
+            <p className="typed-answer">
+              Your answer: <strong>{currentAnswer?.choice ?? "skipped"}</strong>
+            </p>
+          ) : (
+            <MathKeypad
+              key={pos}
+              value={typedNow}
+              unit={current.unit}
+              disabled={busy}
+              onChange={(v) => setTyped((m) => new Map(m).set(pos, v))}
+              onSubmit={() => submit(typedNow.trim())}
+              submitLabel={isTest ? (currentAnswer ? "Change my answer" : "Save my answer") : "Check my answer"}
+            />
+          )
+        ) : (
+          <div className="answers" role="group" aria-label="Your answer">
+            {CHOICES.map((c) => {
+              const picked = currentAnswer?.choice === c;
+              const isRight = locked && currentAnswer?.answer === c;
+              const isWrongPick = locked && picked && !currentAnswer?.correct;
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  className={`btn answer${picked ? " picked" : ""}${isRight ? " right" : ""}${isWrongPick ? " wrong" : ""}`}
+                  aria-pressed={picked}
+                  disabled={busy || locked}
+                  onClick={() => submit(c)}
+                >
+                  {c}
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {isB && isTest && currentAnswer?.choice && (
+          <p className="muted small-line">Saved: {currentAnswer.choice}. You can change it until you hand in.</p>
+        )}
         <div className="row answer-extras">
           <button type="button" className="btn quiet" disabled={busy || locked} onClick={() => submit(null)}>
             I don't know (skip)
@@ -311,14 +343,16 @@ export function Runner({ sessionId }: { sessionId: number }) {
 
         {locked && currentAnswer && (
           <div className={`feedback ${currentAnswer.correct ? "good" : "notyet"}`} role="status">
-            <h3>
+            <h2>
               {currentAnswer.correct
                 ? "Yes! That's right."
                 : currentAnswer.choice === null
                   ? `Skipped. The answer is ${currentAnswer.answer}.`
                   : `Not quite. The answer is ${currentAnswer.answer}.`}
-            </h3>
-            {help === "learn" &&
+            </h2>
+            {oly && currentAnswer.reveal && <RevealBlock reveal={currentAnswer.reveal} steps={currentAnswer.steps} label={`${current.year} ${current.label}`} year={current.year} />}
+            {!oly &&
+              help === "learn" &&
               (currentAnswer.steps ? (
                 <>
                   <p className="steps-intro">{currentAnswer.correct ? "Here's one way to work it out:" : "Let's work it out together:"}</p>
@@ -357,7 +391,13 @@ export function Runner({ sessionId }: { sessionId: number }) {
         <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="finish-title">
           <div className="panel modal">
             <h2 id="finish-title">{answeredCount < total ? `${total - answeredCount} question${total - answeredCount === 1 ? "" : "s"} still open` : "All done?"}</h2>
-            <p>{answeredCount < total ? "Open questions count as \"don't know\" (1 point each). Hand in now?" : "Hand in and see how you did."}</p>
+            <p>
+              {answeredCount < total
+                ? oly
+                  ? "Open questions score 0 points, just like in the Olympiad. Hand in now?"
+                  : "Open questions count as \"don't know\" (1 point each). Hand in now?"
+                : "Hand in and see how you did."}
+            </p>
             <div className="row">
               <button type="button" className="btn primary" onClick={() => void finish()} disabled={busy}>
                 {isTest ? "Hand in" : "See my results"}

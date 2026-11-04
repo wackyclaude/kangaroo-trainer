@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
-  "description": "Kid-friendly practice app for the W4Kangoeroe wizSMART maths competition.",
+  "description": "Kid-friendly practice app for the W4Kangoeroe wizSMART maths competition and the Dutch Mathematical Olympiad.",
   "type": "module",
   "engines": {
     "node": ">=22"

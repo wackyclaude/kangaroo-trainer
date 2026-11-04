@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { MAX_STUDENTS, type Me, type Readiness, type Role, type SessionListItem } from "../../shared/types";
+import { MAX_STUDENTS, type Contest, type Me, type OlympiadSettings, type Readiness, type Role, type SessionListItem } from "../../shared/types";
+import { ContestToggles, OlympiadSettingsForm, type SavedOlympiad } from "../components/OlympiadSettings";
 import { api, messageOf } from "../api";
 import { AvatarPicker } from "../components/AvatarPicker";
 import { go, modeLabel, when } from "../format";
@@ -15,6 +16,8 @@ interface AdminProfile {
   grade: string | null;
   birthYear: number | null;
   locked: boolean;
+  contests: Contest[];
+  olympiad: OlympiadSettings;
 }
 
 export function ParentHome({ me }: { me: Me }) {
@@ -36,10 +39,18 @@ export function ParentHome({ me }: { me: Me }) {
 
   const students = people.filter((p) => p.role === "student");
   const [ready, setReady] = useState<Record<number, Readiness>>({});
-  const studentKey = students.map((s) => s.id).join(",");
+  const [olyReady, setOlyReady] = useState<Record<number, Readiness>>({});
+  const studentKey = students.map((s) => `${s.id}:${s.contests.join("+")}`).join(",");
   useEffect(() => {
-    for (const s of students) api.get<Readiness>(`/api/readiness/${s.id}`).then((r) => setReady((x) => ({ ...x, [s.id]: r })), () => undefined);
+    for (const s of students) {
+      api.get<Readiness>(`/api/readiness/${s.id}`).then((r) => setReady((x) => ({ ...x, [s.id]: r })), () => undefined);
+      if (s.contests.includes("olympiad")) api.get<Readiness>(`/api/readiness/${s.id}?contest=olympiad`).then((r) => setOlyReady((x) => ({ ...x, [s.id]: r })), () => undefined);
+    }
   }, [studentKey]);
+  const savedOly = (id: number, saved: SavedOlympiad) => {
+    setPeople((list) => list.map((p) => (p.id === id ? { ...p, contests: saved.contests, olympiad: saved.olympiad } : p)));
+    if (saved.readiness) setOlyReady((x) => ({ ...x, [id]: saved.readiness! }));
+  };
 
   const resetPin = async (p: AdminProfile) => {
     const rule = p.role === "parent" ? "6 to 12 digits" : "4 digits";
@@ -149,10 +160,10 @@ export function ParentHome({ me }: { me: Me }) {
       {students.length > 0 && (
         <section className="panel stack" aria-labelledby="contest-h">
           <div>
-            <h2 id="contest-h">Contest countdown and readiness</h2>
+            <h2 id="contest-h">Contests, countdown and readiness</h2>
             <p className="muted">
-              Readiness blends skill (40%: each focus area towards 80% right), score (40%: the contest estimate against the target) and practice (20%: papers and different
-              questions). Set each student's school day and target here.
+              Turn the Olympiad on per student. Readiness blends skill (40%: each focus area towards 80% right; Olympiad: most level 1–3 questions right), score (40%: Kangaroo
+              estimate against the target; Olympiad: recent full papers against each year's cutoff) and practice (20%: papers and different questions).
             </p>
           </div>
           <div className="ready-grid">
@@ -160,14 +171,47 @@ export function ParentHome({ me }: { me: Me }) {
               const r = ready[s.id];
               return (
                 <div key={s.id} className="ready-student">
-                  {r ? (
+                  <h3>
+                    {s.avatar} {s.nickname}
+                  </h3>
+                  <ContestToggles profileId={s.id} name={s.nickname} value={s.contests} onSaved={(saved) => savedOly(s.id, saved)} />
+                  {s.contests.includes("kangaroo") &&
+                    (r ? (
+                      <>
+                        <ReadinessCard r={r} headingLevel={3} title={`Kangaroo: ${r.percent}% ready`} idKey={String(s.id)} />
+                        <p className="muted small-line">{countdownShort(r.contest)}</p>
+                        <ContestSettings profileId={s.id} name={s.nickname} r={r} onSaved={(n) => setReady((x) => ({ ...x, [s.id]: n }))} />
+                      </>
+                    ) : (
+                      <p className="muted">Loading {s.nickname}…</p>
+                    ))}
+                  {s.contests.includes("olympiad") && olyReady[s.id] && (
                     <>
-                      <ReadinessCard r={r} headingLevel={3} title={`${s.avatar} ${s.nickname}: ${r.percent}% ready`} idKey={String(s.id)} />
-                      <p className="muted small-line">{countdownShort(r.contest)}</p>
-                      <ContestSettings profileId={s.id} name={s.nickname} r={r} onSaved={(n) => setReady((x) => ({ ...x, [s.id]: n }))} />
+                      {olyReady[s.id]!.suggestWiden && (
+                        <div className="message ok stack" role="status">
+                          <span>
+                            {s.nickname} got {olyReady[s.id]!.suggestWiden!.right} of the last {olyReady[s.id]!.suggestWiden!.of} level-{olyReady[s.id]!.suggestWiden!.to - 1} Olympiad questions
+                            right. Ready for level {olyReady[s.id]!.suggestWiden!.to}?
+                          </span>
+                          <div>
+                            <button
+                              type="button"
+                              className="btn primary small"
+                              onClick={() =>
+                                api
+                                  .put<SavedOlympiad>(`/api/profiles/${s.id}/olympiad`, { maxLevel: olyReady[s.id]!.suggestWiden!.to })
+                                  .then((saved) => savedOly(s.id, saved), (e) => setMsg({ ok: false, text: messageOf(e) }))
+                              }
+                            >
+                              Add level {olyReady[s.id]!.suggestWiden!.to}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      <ReadinessCard r={olyReady[s.id]!} headingLevel={3} title={`Olympiad: ${olyReady[s.id]!.percent}% ready`} idKey={`${s.id}-oly`} />
+                      <p className="muted small-line">{countdownShort(olyReady[s.id]!.contest, "olympiad")}</p>
+                      <OlympiadSettingsForm key={JSON.stringify(s.olympiad)} profileId={s.id} name={s.nickname} value={s.olympiad} r={olyReady[s.id]!} onSaved={(saved) => savedOly(s.id, saved)} />
                     </>
-                  ) : (
-                    <p className="muted">Loading {s.nickname}…</p>
                   )}
                 </div>
               );

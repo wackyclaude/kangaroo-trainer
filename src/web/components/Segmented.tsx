@@ -23,7 +23,7 @@ export function Chips<T extends string>({ label, options, values, onChange, colo
         <button
           key={o.value}
           type="button"
-          className="pick-chip"
+          className={`pick-chip${colorOf ? "" : " plain"}`}
           aria-pressed={values.includes(o.value)}
           style={colorOf ? { ["--chip" as string]: colorOf(o.value) } : undefined}
           onClick={() => toggle(o.value)}

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { TIERS, type Insights, type Rewards, type SpeedFlag } from "../../shared/types";
+import { CONTESTS, OLY_LEVEL_TEXT, TIERS, type Contest, type Insights, type Rewards, type SpeedFlag } from "../../shared/types";
+import { useContest, withContest } from "../contest";
+import { ContestSwitch } from "../components/ContestSwitch";
 import { api, messageOf } from "../api";
 import { AreaBars } from "../components/AreaBars";
 import { RewardStrip } from "../components/RewardStrip";
@@ -13,11 +15,29 @@ export function Progress({ profileId, asParent }: { profileId?: number; asParent
   const [ins, setIns] = useState<Insights | null>(null);
   const [error, setError] = useState("");
   const [rewards, setRewards] = useState<Rewards | null>(null);
+  const [mine, setMine, myContests] = useContest();
+  const [parentPick, setParentPick] = useState<Contest>("kangaroo");
+  const contest = asParent ? parentPick : mine;
+  const [widened, setWidened] = useState("");
 
+  const load = () => api.get<Insights>(withContest(profileId ? `/api/insights/${profileId}` : "/api/insights", contest)).then(setIns, (e) => setError(messageOf(e)));
   useEffect(() => {
-    api.get<Insights>(profileId ? `/api/insights/${profileId}` : "/api/insights").then(setIns, (e) => setError(messageOf(e)));
+    setIns(null);
+    void load();
     if (asParent && profileId) api.get<Rewards>(`/api/rewards/${profileId}`).then(setRewards, () => undefined);
-  }, [profileId, asParent]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileId, asParent, contest]);
+
+  const widen = async (to: number) => {
+    if (!profileId) return;
+    try {
+      await api.put(`/api/profiles/${profileId}/olympiad`, { maxLevel: to });
+      setWidened(`Done: ${ins?.nickname ?? "the student"} now gets questions up to level ${to}.`);
+      void load();
+    } catch (e) {
+      setError(messageOf(e));
+    }
+  };
 
   if (error) return <div className="message" role="alert">{error}</div>;
   if (!ins) return <div aria-busy="true" />;
@@ -33,6 +53,11 @@ export function Progress({ profileId, asParent }: { profileId?: number; asParent
           ← Back
         </button>
         <h1>{asParent ? `${ins.avatar} ${ins.nickname}'s progress` : "My progress"}</h1>
+        {asParent ? (
+          <ContestSwitch value={parentPick} onChange={setParentPick} options={[...CONTESTS]} />
+        ) : (
+          myContests.length > 1 && <ContestSwitch value={mine} onChange={setMine} options={myContests} />
+        )}
         {nothingYet ? (
           <MascotSays mood="sleep" size={80}>
             <p>Nothing to show yet. Levels appear here as questions get answered.</p>
@@ -52,10 +77,43 @@ export function Progress({ profileId, asParent }: { profileId?: number; asParent
         </section>
       )}
 
+      {ins.olympiad?.suggestWiden && asParent && (
+        <div className="message ok stack" role="status">
+          <span>
+            {ins.nickname} got {ins.olympiad.suggestWiden.right} of the last {ins.olympiad.suggestWiden.of} level-{ins.olympiad.suggestWiden.to - 1} questions right. Ready for level {ins.olympiad.suggestWiden.to} ({OLY_LEVEL_TEXT[ins.olympiad.suggestWiden.to]})?
+          </span>
+          <div>
+            <button type="button" className="btn primary small" onClick={() => widen(ins.olympiad!.suggestWiden!.to)}>
+              Add level {ins.olympiad.suggestWiden.to}
+            </button>
+          </div>
+        </div>
+      )}
+      {widened && (
+        <div className="message ok" role="status">
+          {widened}
+        </div>
+      )}
+
       <div className="stat-row">
         <div className="panel stat">
-          <span className="stat-label">Contest score estimate</span>
-          {ins.estimate ? (
+          <span className="stat-label">{ins.contest === "olympiad" ? "Cutoff pace (last 60 questions)" : "Contest score estimate"}</span>
+          {ins.contest === "olympiad" ? (
+            ins.olympiad?.pace ? (
+              <>
+                <span className="stat-num">
+                  {Math.round(ins.olympiad.pace.relative * 100)}
+                  <small>%</small>
+                </span>
+                <span className="muted">
+                  Like about {ins.olympiad.pace.fullPaper} of 36 on a full paper · {ins.olympiad.pace.points} points where cutoff pace is {ins.olympiad.pace.pace}
+                  {ins.olympiad.pace.rough ? " · rough, fewer than 12 questions" : ""}
+                </span>
+              </>
+            ) : (
+              <span className="muted">Answer 6 Olympiad questions to see this.</span>
+            )
+          ) : ins.estimate ? (
             <>
               <span className="stat-num">
                 {ins.estimate.score}
@@ -83,6 +141,50 @@ export function Progress({ profileId, asParent }: { profileId?: number; asParent
           )}
         </div>
       </div>
+
+      {ins.olympiad && ins.olympiad.papers.length > 0 && (
+        <section className="panel stack">
+          <h2>Full papers against the cutoff</h2>
+          <ul className="recent">
+            {[...ins.olympiad.papers].reverse().map((p) => (
+              <li key={p.sessionId}>
+                <button type="button" className="recent-row" onClick={() => go(`#/results/${p.sessionId}`)}>
+                  <span>{p.year} paper</span>
+                  <span className="muted">{when(p.at)}</span>
+                  <strong>
+                    {p.score} / 36 · {p.score >= p.cutoff ? `${p.score - p.cutoff} above` : `${p.cutoff - p.score} below`} the cutoff ({p.cutoff})
+                  </strong>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {ins.olympiad && (
+        <section className="panel stack">
+          <h2>By level</h2>
+          <p className="muted" style={{ margin: 0 }}>
+            Right answers over the last 20 questions at each level. Level 1: {OLY_LEVEL_TEXT[1]} got it right; level 5: {OLY_LEVEL_TEXT[5]}.
+          </p>
+          <table className="people">
+            <thead>
+              <tr>
+                <th scope="col">Level</th>
+                <th scope="col">Right</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ins.olympiad.levels.map((l) => (
+                <tr key={l.level}>
+                  <td>Level {l.level}</td>
+                  <td>{l.answers ? `${l.right} of ${l.answers}` : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
 
       <section className="panel stack">
         <h2>Focus areas</h2>
@@ -121,7 +223,8 @@ export function Progress({ profileId, asParent }: { profileId?: number; asParent
         <section className="panel stack">
           <h2>Speed</h2>
           <p className="muted" style={{ margin: 0 }}>
-            Middle time per question (half the answers were quicker). In the contest there are about 2 minutes per question.
+            Middle time per question (half the answers were quicker).{" "}
+            {ins.contest === "olympiad" ? "In Olympiad round 1 there are 10 minutes per question on average; B-problems take longer." : "In the contest there are about 2 minutes per question."}
           </p>
           <table className="people">
             <thead>

@@ -519,4 +519,6 @@ export interface Readiness {
   parts: { skill: ReadinessPart; score: ReadinessPart; practice: ReadinessPart };
   /** One line on what would raise readiness most. */
   tip: string;
+  /** Olympiad: ready for a wider level range (shown in the parent corner). */
+  suggestWiden?: OlympiadInsights["suggestWiden"];
 }
