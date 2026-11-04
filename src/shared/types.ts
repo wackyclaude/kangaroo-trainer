@@ -35,10 +35,94 @@ export interface Me {
   role: Role;
   grade: string | null;
   birthYear: number | null;
+  /** Contests turned on for this profile (the parent always has both). */
+  contests: Contest[];
+  /** The question levels this student may get in short Olympiad quizzes. */
+  olympiad: OlympiadSettings;
+}
+
+// ---------- contests (M8) ----------
+
+export const CONTESTS = ["kangaroo", "olympiad"] as const;
+export type Contest = (typeof CONTESTS)[number];
+export const CONTEST_NAMES: Record<Contest, string> = { kangaroo: "Kangaroo", olympiad: "Olympiad" };
+
+/** Olympiad difficulty for a klas-1 student, from the share of klas 1 that got it right. */
+export const OLY_LEVELS = [1, 2, 3, 4, 5] as const;
+export type OlyLevel = (typeof OLY_LEVELS)[number];
+export const OLY_LEVEL_TEXT: Record<OlyLevel, string> = {
+  1: "half or more of klas 1 got it right",
+  2: "35–49% of klas 1",
+  3: "20–34% of klas 1",
+  4: "10–19% of klas 1",
+  5: "under 10% of klas 1",
+};
+export const OLY_PAPER_MINUTES = 120;
+export const OLY_MAX_SCORE = 36;
+export const OLY_PARTS = ["A", "B"] as const;
+export type OlyPart = (typeof OLY_PARTS)[number];
+
+export interface OlympiadSettings {
+  /** Lowest and highest level allowed in focus quizzes, Smart mix and Fix my mistakes. */
+  minLevel: OlyLevel;
+  maxLevel: OlyLevel;
+  /** Smart mix adds one question from the level above the range. */
+  stretch: boolean;
+  /** The school's round-1 day (YYYY-MM-DD) or null = the first day of the window. */
+  date: string | null;
+  /** Points above (or below) each paper's cutoff that count as 100% on the score part. */
+  targetShift: number;
+}
+export const DEFAULT_OLYMPIAD: OlympiadSettings = { minLevel: 1, maxLevel: 4, stretch: false, date: null, targetShift: 0 };
+
+/** Share right per class in that year's report (klas 4 and 5 = vwo). */
+export interface ClassStats {
+  klas1: number;
+  klas2: number;
+  klas3: number;
+  klas4: number;
+  klas5: number;
+}
+
+/** How a B-answer is checked. Values are exact expressions such as "24/5", "2+2√2" or "6π". */
+export type AnswerSpec =
+  | { kind: "number"; value: string }
+  | { kind: "text"; value: string }
+  | { kind: "tuple"; values: (string | AnswerSpec)[] }
+  | { kind: "set"; values: (string | AnswerSpec)[] }
+  | { kind: "any"; options: AnswerSpec[] };
+
+/** Short-quiz marks worked out from the reports (all in points). */
+export interface PaceMarks {
+  questions: number;
+  points: number;
+  maxPoints: number;
+  /** The klas-1 average for exactly these questions. */
+  klas1: number;
+  /** Roughly what a student who just reaches the cutoff scores on these questions. */
+  pace: number;
+  /** points ÷ pace (1 = on cutoff pace). */
+  relative: number;
+  /** relative × the median cutoff, as a score out of 36. */
+  fullPaper: number;
+  rough: boolean;
+}
+
+export interface CutoffResult {
+  year: number;
+  cutoff: number;
+  /** Her score minus the cutoff. */
+  diff: number;
+  /** Share of klas 1–3 students she scored more than (0–100). */
+  betterThan: number;
+  target: number;
 }
 
 export interface QuestionSummary {
   id: string;
+  contest: Contest;
+  /** "7" for Kangaroo, "A3" or "B2" for the Olympiad. */
+  label: string;
   year: number;
   number: number;
   tier: Tier;
@@ -74,6 +158,12 @@ export type Delivery = "app" | "paper";
 
 export interface SessionSettings {
   help: HelpLevel;
+  /** Missing on sessions from before M8 = Kangaroo. */
+  contest?: Contest;
+  /** Olympiad: the levels picked for this quiz (inside the student's range), and A/B parts. */
+  levels?: OlyLevel[];
+  parts?: OlyPart[];
+  stretch?: boolean;
   timerMinutes: number | null;
   /** "paper" = printed and done on paper; answers are typed in afterwards, without timing. */
   delivery?: Delivery;
@@ -87,6 +177,12 @@ export interface SessionSettings {
 export interface SessionQuestion {
   position: number;
   id: string;
+  label: string;
+  /** Olympiad: A = multiple choice, B = type the exact answer. */
+  part: OlyPart | null;
+  points: number;
+  /** For B-answers like "100°" or "30 minutes". */
+  unit: string | null;
   year: number;
   number: number;
   tier: Tier;
@@ -101,16 +197,28 @@ export interface SessionQuestion {
 
 export interface SavedAnswer {
   position: number;
-  choice: Choice | null;
+  /** A–E, or the typed B-answer. */
+  choice: string | null;
   flagged: boolean;
   /** Only filled in practice/learn mode, or after the session has finished. */
   correct?: boolean;
-  answer?: Choice;
+  answer?: string;
   steps?: string[] | null;
+  reveal?: Reveal;
+}
+
+/** Shown once an Olympiad question is graded. */
+export interface Reveal {
+  /** "Simplify next time" and similar. */
+  note: string | null;
+  officialUrl: string | null;
+  stats: ClassStats | null;
+  level: OlyLevel | null;
 }
 
 export interface SessionState {
   id: number;
+  contest: Contest;
   mode: PracticeMode;
   paperYear: number | null;
   settings: SessionSettings;
@@ -125,21 +233,30 @@ export interface SessionState {
 export interface AnswerFeedback {
   saved: true;
   correct?: boolean;
-  answer?: Choice;
+  answer?: string;
   steps?: string[] | null;
+  reveal?: Reveal;
 }
 
 export interface ResultRow {
   position: number;
   id: string;
+  label: string;
+  part: OlyPart | null;
+  points: number;
+  earned: number;
   year: number;
   number: number;
   tier: Tier;
   focusPrimary: FocusArea;
   focusSecondary: FocusArea | null;
   imageUrl: string;
-  choice: Choice | null;
-  answer: Choice;
+  choice: string | null;
+  answer: string;
+  note: string | null;
+  officialUrl: string | null;
+  stats: ClassStats | null;
+  level: OlyLevel | null;
   correct: boolean;
   voided: boolean;
   timeMs: number;
@@ -150,6 +267,7 @@ export interface ResultRow {
 
 export interface SessionResults {
   id: number;
+  contest: Contest;
   mode: PracticeMode;
   paperYear: number | null;
   help: HelpLevel;
@@ -164,12 +282,17 @@ export interface SessionResults {
   totalTimeMs: number;
   rows: ResultRow[];
   practiseNext: { focus: FocusArea; missed: number; of: number }[];
+  /** Olympiad full paper: compared with that year's cutoff. */
+  cutoff?: CutoffResult | null;
+  /** Olympiad short quiz (6 or more questions): klas-1 average and cutoff pace. */
+  pace?: PaceMarks | null;
   /** Stars and badges from this quiz (only on the results screen, for students). */
   rewards?: SessionRewards | null;
 }
 
 export interface SessionListItem {
   id: number;
+  contest: Contest;
   mode: PracticeMode;
   paperYear: number | null;
   help: HelpLevel;
@@ -248,6 +371,19 @@ export interface Insights {
   estimate: { score: number; low: number; high: number; papers: number } | null;
   totals: { answers: number; sessions: number; papers: number };
   tierTarget: Tier;
+  contest: Contest;
+  /** Olympiad only. */
+  olympiad?: OlympiadInsights;
+}
+
+export interface OlympiadInsights {
+  /** Running cutoff pace over the last 60 answered questions (null under 6). */
+  pace: PaceMarks | null;
+  papers: { sessionId: number; year: number; score: number; cutoff: number; at: number }[];
+  /** Share right per level (last 20 answers at each level). */
+  levels: { level: OlyLevel; answers: number; right: number }[];
+  /** Set when she is ready for a wider range (70%+ of her top level over the last 20 there). */
+  suggestWiden: { to: OlyLevel; right: number; of: number } | null;
 }
 
 export interface BenchmarkProfile {
@@ -270,9 +406,10 @@ export interface Benchmarks {
 
 export interface PaperKeyRow {
   position: number;
+  label: string;
   year: number;
   number: number;
-  answer: Choice;
+  answer: string;
   voided: boolean;
 }
 
@@ -290,10 +427,10 @@ export const AREA_BADGE_NAMES: Record<FocusArea, string> = {
 /** Every badge, in the order they are shown. Earned or not is worked out from the answer log. */
 export const BADGES = [
   { id: "first-quiz", name: "First hop", description: "Finish your first quiz or paper.", need: 1 },
-  { id: "first-paper", name: "Full paper", description: "Finish a whole past paper.", need: 1 },
+  { id: "first-paper", name: "Full paper", description: "Finish a whole Kangaroo past paper.", need: 1 },
   { id: "no-skip", name: "No skips", description: "Answer every question of a full paper.", need: 1 },
-  { id: "score-80", name: "80 club", description: "Score 80 or more out of 120 on a full paper.", need: 80 },
-  { id: "score-100", name: "100 club", description: "Score 100 or more out of 120 on a full paper.", need: 100 },
+  { id: "score-80", name: "80 club", description: "Score 80 or more out of 120 on a full Kangaroo paper.", need: 80 },
+  { id: "score-100", name: "100 club", description: "Score 100 or more out of 120 on a full Kangaroo paper.", need: 100 },
   { id: "on-a-roll", name: "On a roll", description: "Get 10 right in a row in one quiz.", need: 10 },
   { id: "fixer", name: "Mistake fixer", description: "Fix 10 past mistakes for good.", need: 10 },
   { id: "streak-3", name: "3-day streak", description: "Practise 3 days in a row.", need: 3 },
@@ -307,6 +444,9 @@ export const BADGES = [
   { id: "area-LOG", name: AREA_BADGE_NAMES.LOG, description: "Get 10 different logic & deduction questions right without a hint.", need: 10 },
   { id: "area-CMB", name: AREA_BADGE_NAMES.CMB, description: "Get 10 different counting & combinatorics questions right without a hint.", need: 10 },
   { id: "ready", name: "Contest ready", description: "Reach Competition-ready in any focus area.", need: 1 },
+  { id: "oly-first-paper", name: "Olympian", description: "Finish a whole Olympiad paper.", need: 1 },
+  { id: "oly-first-b", name: "Exactly right", description: "Get an Olympiad B-problem right.", need: 1 },
+  { id: "oly-cutoff", name: "Over the line", description: "Reach that year's cutoff on a full Olympiad paper.", need: 1 },
 ] as const;
 export type BadgeId = (typeof BADGES)[number]["id"];
 
@@ -332,7 +472,7 @@ export interface Rewards {
   streak: { current: number; best: number; practisedToday: boolean };
   week: { goal: number; practisedDays: number; days: WeekDay[] };
   badges: Badge[];
-  /** Best full-paper score so far (out of 120). */
+  /** Best full Kangaroo paper score so far (out of 120). */
   bestPaper: number | null;
 }
 
@@ -358,6 +498,8 @@ export interface ReadinessPart {
 }
 
 export interface Readiness {
+  /** Which contest this is for. */
+  kind: Contest;
   contest: {
     /** The day counted down to (YYYY-MM-DD, home time zone). */
     date: string;
@@ -369,6 +511,8 @@ export interface Readiness {
     /** countdown = before the day; today; open = window open, school day not set and passed;
      *  done = the chosen day has passed (results come in mid-May). */
     phase: "countdown" | "today" | "open" | "done";
+    /** Olympiad: the round-2 day, when known. */
+    nextRound?: string | null;
   };
   target: number;
   percent: number;

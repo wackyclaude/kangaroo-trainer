@@ -7,6 +7,7 @@ import { hashPin, isValidPin } from "../auth/pin.js";
 import { endAllSessionsFor } from "../auth/session.js";
 import { AVATARS, MAX_STUDENTS } from "../../shared/types.js";
 import { requireParent } from "./guards.js";
+import { contestsOf, olympiadOf } from "../practice/contest.js";
 
 const Nickname = z.string().trim().min(1).max(20).regex(/^[\p{L}\p{N} _'-]+$/u);
 const thisYear = new Date().getFullYear();
@@ -122,6 +123,8 @@ export async function profileRoutes(app: FastifyInstance, deps: { db: Db }): Pro
         grade: p.grade,
         birthYear: p.birthYear,
         locked: (p.lockedUntil ?? 0) > now,
+        contests: contestsOf(p),
+        olympiad: olympiadOf(p),
       }));
   });
 }

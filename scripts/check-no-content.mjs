@@ -1,5 +1,6 @@
 // Fails if anything that looks like contest material is tracked by git.
-// The past papers are © Stichting Wiskunde Kangoeroe and must never be committed.
+// The past papers are © Stichting Wiskunde Kangoeroe and © Stichting Nederlandse Wiskunde Olympiade
+// and must never be committed.
 import { execFileSync } from "node:child_process";
 import { readFileSync, statSync } from "node:fs";
 
@@ -21,7 +22,7 @@ for (const f of files) {
   if (/(^|\/)(en|nl)_\d{4}\.json$/.test(lower) || /(^|\/)(review\.html|questions\.csv)$/.test(lower)) bad(f, "question-bank file");
   if (/\.(png|jpe?g|gif|webp|avif)$/.test(lower)) {
     const icon = f.startsWith("src/web/public/");
-    const fixture = f.startsWith(`${FIXTURES}img/`) && size <= 1024;
+    const fixture = /^tests\/fixtures\/content\/(olympiad\/)?(img|sol)\//.test(f) && size <= 1024;
     if (!icon && !fixture) bad(f, "pictures are only allowed as app icons or tiny test placeholders");
   }
   if (lower.endsWith("questions.json") && !(f.startsWith(FIXTURES) && size <= 20_000)) bad(f, "questions.json is only allowed as the small test fixture");

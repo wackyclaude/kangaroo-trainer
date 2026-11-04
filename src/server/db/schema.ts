@@ -16,6 +16,10 @@ export const profile = sqliteTable(
     contestDate: text("contest_date"),
     // What "100% ready" means: a projected score out of 120, set by the parent; null = 100.
     targetScore: integer("target_score"),
+    // Contests turned on for this student; null = Kangaroo only.
+    contests: text("contests", { mode: "json" }).$type<string[] | null>(),
+    // Olympiad level range, stretch question, school day and target (see OlympiadSettings); null = defaults.
+    olympiad: text("olympiad", { mode: "json" }).$type<Record<string, unknown> | null>(),
     createdAt: integer("created_at").notNull(),
   },
   (t) => [uniqueIndex("profile_nickname_uq").on(t.nickname)],
@@ -37,7 +41,8 @@ export const loginSession = sqliteTable(
 export const question = sqliteTable(
   "question",
   {
-    id: text("id").primaryKey(), // e.g. wizSMART-2026-07
+    id: text("id").primaryKey(), // e.g. wizSMART-2026-07 or dmo-2026-B2
+    contest: text("contest", { enum: ["kangaroo", "olympiad"] }).notNull().default("kangaroo"),
     level: text("level").notNull(),
     year: integer("year").notNull(),
     number: integer("number").notNull(),
@@ -52,9 +57,18 @@ export const question = sqliteTable(
     solutionEn: text("solution_en"),
     solutionSteps: text("solution_steps", { mode: "json" }).$type<string[] | null>(),
     voidNote: text("void_note"),
+    // Olympiad: part A (choice) or B (exact answer), points, how the answer is checked, class stats, level 1–5.
+    part: text("part", { enum: ["A", "B"] }),
+    points: integer("points"),
+    answerType: text("answer_type").notNull().default("choice"),
+    answerSpec: text("answer_spec", { mode: "json" }).$type<import("../../shared/types.js").AnswerSpec | null>(),
+    answerUnit: text("answer_unit"),
+    stats: text("stats", { mode: "json" }).$type<import("../../shared/types.js").ClassStats | null>(),
+    difficulty: integer("difficulty"),
+    officialPath: text("official_path"),
     updatedAt: integer("updated_at").notNull(),
   },
-  (t) => [index("question_year_idx").on(t.level, t.year, t.number), index("question_focus_idx").on(t.focusPrimary)],
+  (t) => [index("question_year_idx").on(t.level, t.year, t.number), index("question_focus_idx").on(t.focusPrimary), index("question_contest_idx").on(t.contest, t.year)],
 );
 
 export const practiceSession = sqliteTable(
@@ -63,6 +77,7 @@ export const practiceSession = sqliteTable(
     id: integer("id").primaryKey({ autoIncrement: true }),
     profileId: integer("profile_id").notNull().references(() => profile.id, { onDelete: "cascade" }),
     mode: text("mode", { enum: ["paper", "focus", "mistakes", "smart"] }).notNull(),
+    contest: text("contest", { enum: ["kangaroo", "olympiad"] }).notNull().default("kangaroo"),
     settings: text("settings", { mode: "json" }).notNull(),
     paperYear: integer("paper_year"),
     startedAt: integer("started_at").notNull(),
@@ -120,12 +135,27 @@ export const masterySnapshot = sqliteTable(
     id: integer("id").primaryKey({ autoIncrement: true }),
     profileId: integer("profile_id").notNull().references(() => profile.id, { onDelete: "cascade" }),
     focusArea: text("focus_area").notNull(),
+    contest: text("contest", { enum: ["kangaroo", "olympiad"] }).notNull().default("kangaroo"),
     level: text("level", { enum: ["starter", "developing", "solid", "competition-ready"] }).notNull(),
     weightedAccuracy: real("weighted_accuracy").notNull(),
     attempts: integer("attempts").notNull(),
     computedAt: integer("computed_at").notNull(),
   },
   (t) => [index("mastery_profile_idx").on(t.profileId, t.computedAt)],
+);
+
+// One row per contest paper: cutoffs and how many klas 1–3 students got each score (Olympiad reports).
+export const contestPaper = sqliteTable(
+  "contest_paper",
+  {
+    contest: text("contest", { enum: ["kangaroo", "olympiad"] }).notNull(),
+    year: integer("year").notNull(),
+    maxScore: integer("max_score").notNull(),
+    minutes: integer("minutes").notNull(),
+    cutoff: text("cutoff", { mode: "json" }).$type<Record<string, number> | null>(),
+    scores: text("scores", { mode: "json" }).$type<Record<string, number> | null>(),
+  },
+  (t) => [primaryKey({ columns: [t.contest, t.year] })],
 );
 
 export const appMeta = sqliteTable("app_meta", {

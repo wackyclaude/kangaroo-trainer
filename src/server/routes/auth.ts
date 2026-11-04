@@ -1,4 +1,6 @@
 import crypto from "node:crypto";
+import { profileSettings } from "../practice/contest.js";
+import { DEFAULT_OLYMPIAD } from "../../shared/types.js";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { count, eq } from "drizzle-orm";
@@ -117,6 +119,7 @@ export async function authRoutes(app: FastifyInstance, deps: AuthDeps): Promise<
   app.get("/api/me", async (req, reply) => {
     const u = requireUser(req, reply);
     if (!u) return;
-    return u;
+    const extra = profileSettings(deps.db, u.id);
+    return { ...u, contests: extra?.contests ?? ["kangaroo"], olympiad: extra?.olympiad ?? DEFAULT_OLYMPIAD };
   });
 }

@@ -3,6 +3,7 @@ import type { Db } from "../db/client.js";
 import { practiceSession, profile, sessionQuestion } from "../db/schema.js";
 import { countedAnswers } from "../insights/store.js";
 import { replayRewards, type FinishedSession, type RewardsReplay } from "./model.js";
+import { olympiadPapers } from "../content/olympiad.js";
 
 function validTimeZone(tz: string | undefined): string {
   const fallback = "Europe/Amsterdam";
@@ -31,11 +32,22 @@ export function buildRewards(db: Db, profileId: number, now = Date.now()): Rewar
       .all()
       .map((r) => [r.id, r.n]),
   );
+  const { facts } = olympiadPapers(db);
   const sessions: FinishedSession[] = db
     .select()
     .from(practiceSession)
     .where(and(eq(practiceSession.profileId, profileId), isNotNull(practiceSession.endedAt)))
     .all()
-    .map((s) => ({ id: s.id, mode: s.mode, startedAt: s.startedAt, endedAt: s.endedAt!, score: s.score, maxScore: s.maxScore, questions: counts.get(s.id) ?? 0 }));
+    .map((s) => ({
+      id: s.id,
+      mode: s.mode,
+      startedAt: s.startedAt,
+      endedAt: s.endedAt!,
+      score: s.score,
+      maxScore: s.maxScore,
+      questions: counts.get(s.id) ?? 0,
+      contest: s.contest,
+      cutoff: s.contest === "olympiad" && s.paperYear !== null ? (facts.get(s.paperYear)?.cutoff ?? null) : null,
+    }));
   return replayRewards(countedAnswers(db, profileId), sessions, now, HOME_TIME_ZONE);
 }
