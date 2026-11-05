@@ -1,0 +1,10 @@
+# Changes for the AWS server, used on top of docker-compose.yml:
+#   docker compose -f docker-compose.yml -f docker-compose.aws.yml up -d --build
+# deploy/aws/kt-start.sh writes .env (hostname, origin secret, folders) on every boot.
+
+services:
+  caddy:
+    environment:
+      KT_ORIGIN_SECRET: ${KT_ORIGIN_SECRET:?set KT_ORIGIN_SECRET in .env}
+    volumes:
+      - ./deploy/Caddyfile.aws:/etc/caddy/Caddyfile:ro

@@ -1,0 +1,16 @@
+[Unit]
+Description=Kangaroo Trainer (app + Caddy)
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/kt-start
+ExecStop=/usr/bin/docker compose -f /srv/kt/app/docker-compose.yml -f /srv/kt/app/docker-compose.aws.yml stop
+WorkingDirectory=/srv/kt/app
+TimeoutStartSec=1800
+
+[Install]
+WantedBy=multi-user.target

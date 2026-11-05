@@ -5,6 +5,7 @@ A kid-friendly web app for practising the W4Kangoeroe **wizSMART** maths competi
 > Not affiliated with or endorsed by Stichting Wiskunde Kangoeroe or Stichting Nederlandse Wiskunde Olympiade. **No contest questions are included.** The past papers are © Stichting Wiskunde Kangoeroe and © Stichting Nederlandse Wiskunde Olympiade; to use the app you need your own question bank (see below), for private use only.
 
 - **Run it at home:** [docs/SETUP.md](docs/SETUP.md) (a Mac with Docker; the iPad connects over the home network).
+- **Run it on AWS:** [docs/AWS.md](docs/AWS.md) (one small server behind CloudFront).
 - **Security:** [SECURITY.md](SECURITY.md).
 - **Licence:** [MIT](LICENSE) for the code. The licence does not cover any contest material.
 
