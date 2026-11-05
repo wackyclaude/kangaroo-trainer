@@ -7,7 +7,8 @@ Requires=docker.service
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/local/sbin/kt-start
+# Runs the script from the repo, so an update (git checkout) also updates the start-up steps.
+ExecStart=/srv/kt/app/deploy/aws/kt-start.sh
 ExecStop=/usr/bin/docker compose -f /srv/kt/app/docker-compose.yml -f /srv/kt/app/docker-compose.aws.yml stop
 WorkingDirectory=/srv/kt/app
 TimeoutStartSec=1800
