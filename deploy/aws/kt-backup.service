@@ -3,4 +3,4 @@ Description=Copy Kangaroo Trainer backups to S3
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/sbin/kt-backup
+ExecStart=/srv/kt/app/deploy/aws/kt-backup.sh

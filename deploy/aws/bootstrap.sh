@@ -37,8 +37,7 @@ mkdir -p /srv/kt/data /srv/kt/backups /srv/kt/content
 chown 1000:1000 /srv/kt/data /srv/kt/backups
 chmod 700 /srv/kt/data /srv/kt/backups
 
-install -m 0755 "$APP/deploy/aws/kt-start.sh" /usr/local/sbin/kt-start
-install -m 0755 "$APP/deploy/aws/kt-backup.sh" /usr/local/sbin/kt-backup
+rm -f /usr/local/sbin/kt-start /usr/local/sbin/kt-backup   # older installs copied the scripts here
 install -m 0644 "$APP/deploy/aws/kt.service" "$APP/deploy/aws/kt-backup.service" "$APP/deploy/aws/kt-backup.timer" /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable kt.service kt-backup.timer

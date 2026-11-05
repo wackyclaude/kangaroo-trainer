@@ -39,7 +39,7 @@ You need the apps-prod account, region **Europe (Stockholm)**, and the question 
 
 ## Everyday jobs
 
-- **Update the app:** in Session Manager, run `cd /srv/kt/app && sudo git fetch -q origin && sudo git checkout -q origin/main && sudo systemctl restart kt` (it rebuilds, a few minutes).
+- **Update the app:** in Session Manager, run `cd /srv/kt/app && sudo git fetch -q origin && sudo git checkout -q origin/main && sudo bash deploy/aws/bootstrap.sh` (it reinstalls the services and rebuilds, a few minutes).
 - **New questions or explanations:** upload a new `kt-content.tar.gz` to CloudShell and run `bash setup.sh` again (it only changes what's different), then restart the server or run `sudo systemctl restart kt`.
 - **Always on instead of off at night:** `NIGHT_OFF=no bash setup.sh`. Other hours: `STOP_AT=21 START_AT=6 bash setup.sh`.
 - **Logs:** `cd /srv/kt/app && sudo docker compose logs --tail 100`.
