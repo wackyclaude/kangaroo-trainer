@@ -21,6 +21,8 @@ export interface AppOptions {
   cookieSecure: boolean;
   setupCode: string;
   logLevel?: string;
+  /** Extra addresses the app is reached at through a proxy that rewrites Host, e.g. the CloudFront domain. */
+  publicHosts?: string[];
 }
 
 export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
@@ -53,6 +55,7 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
   // The general limit protects the API. Pictures and app files are left out: a printable paper alone loads 24 pictures.
   await app.register(rateLimit, { max: 300, timeWindow: "1 minute", allowList: (req) => !req.url.startsWith("/api/") });
 
+  const publicHosts = new Set((opts.publicHosts ?? []).map((h) => h.toLowerCase()));
   app.decorateRequest("user", null);
   app.addHook("onRequest", async (req, reply) => {
     // Block cross-site form posts: a state-changing request must come from this same site.
@@ -65,7 +68,7 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
         } catch {
           /* bad origin */
         }
-        if (originHost !== req.headers.host) {
+        if (originHost !== req.headers.host && !publicHosts.has(originHost)) {
           return reply.code(403).send({ error: "bad_origin", message: "This request didn't come from the app." });
         }
       }

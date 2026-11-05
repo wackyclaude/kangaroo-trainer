@@ -14,6 +14,7 @@ export interface Config {
   webDir: string;
   cookieSecure: boolean;
   setupCode: string | undefined;
+  publicHosts: string[];
   logLevel: string;
 }
 
@@ -29,6 +30,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     // Secure cookies need HTTPS. Only switch this off for local development.
     cookieSecure: bool(env.COOKIE_SECURE, true),
     setupCode: env.SETUP_CODE || undefined,
+    // Comma-separated hostnames the app is also reached at (behind CloudFront the Host header is the server's own name).
+    publicHosts: (env.PUBLIC_HOSTS ?? "").split(",").map((h) => h.trim()).filter(Boolean),
     logLevel: env.LOG_LEVEL ?? "info",
   };
 }

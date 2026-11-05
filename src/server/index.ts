@@ -30,6 +30,7 @@ const app = await buildApp({
   cookieSecure: config.cookieSecure,
   setupCode,
   logLevel: config.logLevel,
+  publicHosts: config.publicHosts,
 });
 
 app.log.info({ questions: imported, olympiad, insightsBackfilled: backfilled }, "question bank");

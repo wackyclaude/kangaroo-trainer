@@ -104,6 +104,15 @@ describe("request safety", () => {
     expect(res.statusCode).toBe(403);
   });
 
+  it("accepts the public address behind CloudFront, where Host is the server's own name", async () => {
+    const { app } = await makeApp({ publicHosts: ["d123.cloudfront.net"] });
+    const headers = { origin: "https://d123.cloudfront.net", host: "1-2-3-4.sslip.io" };
+    const res = await app.inject({ method: "POST", url: "/api/setup", headers, payload: { setupCode: SETUP_CODE, nickname: "P", avatar: "🦉", pin: "246810" } });
+    expect(res.statusCode).toBe(200);
+    const evil = await app.inject({ method: "POST", url: "/api/setup", headers: { ...headers, origin: "https://evil.example" }, payload: { setupCode: SETUP_CODE, nickname: "P", avatar: "🦉", pin: "246810" } });
+    expect(evil.statusCode).toBe(403);
+  });
+
   it("sends a strict Content-Security-Policy", async () => {
     const { app } = await makeApp();
     const res = await app.inject("/api/health");

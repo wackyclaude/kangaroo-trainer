@@ -3,6 +3,11 @@
 # deploy/aws/kt-start.sh writes .env (hostname, origin secret, folders) on every boot.
 
 services:
+  app:
+    environment:
+      # The CloudFront address (and later the domain): the app accepts form posts from there.
+      PUBLIC_HOSTS: ${KT_PUBLIC_HOSTS:-}
+
   caddy:
     environment:
       KT_ORIGIN_SECRET: ${KT_ORIGIN_SECRET:?set KT_ORIGIN_SECRET in .env}

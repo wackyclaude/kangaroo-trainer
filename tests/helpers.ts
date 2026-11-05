@@ -7,7 +7,7 @@ import { buildApp } from "../src/server/app.js";
 export const CONTENT = path.resolve("tests/fixtures/content");
 export const SETUP_CODE = "123456";
 
-export async function makeApp() {
+export async function makeApp(extra: { publicHosts?: string[] } = {}) {
   const handle = openDb(":memory:");
   importQuestions(handle.db, CONTENT);
   importOlympiad(handle.db, CONTENT);
@@ -18,6 +18,7 @@ export async function makeApp() {
     cookieSecure: true,
     setupCode: SETUP_CODE,
     logLevel: "silent",
+    ...extra,
   });
   return { app, ...handle };
 }
