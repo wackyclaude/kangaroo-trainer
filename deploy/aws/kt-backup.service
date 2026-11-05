@@ -1,0 +1,6 @@
+[Unit]
+Description=Copy Kangaroo Trainer backups to S3
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/kt-backup

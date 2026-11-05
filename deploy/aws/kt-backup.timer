@@ -1,0 +1,9 @@
+[Unit]
+Description=Copy Kangaroo Trainer backups to S3 every hour
+
+[Timer]
+OnBootSec=15min
+OnUnitActiveSec=1h
+
+[Install]
+WantedBy=timers.target

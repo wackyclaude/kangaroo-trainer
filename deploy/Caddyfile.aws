@@ -1,0 +1,18 @@
+{
+	# No remote admin API.
+	admin off
+}
+
+# The server on AWS. Only CloudFront can reach port 443 (security group), and CloudFront adds
+# a secret header to every request, so requests that didn't come through our distribution are refused.
+# The hostname is <elastic-ip>.sslip.io, which lets Caddy get a Let's Encrypt certificate, so the
+# hop from CloudFront to this server is encrypted too. Port 80 stays open for Let's Encrypt.
+{$KT_HOSTNAME} {
+	@not_cloudfront not header X-KT-Origin {$KT_ORIGIN_SECRET}
+	respond @not_cloudfront "Not available" 403
+
+	encode zstd gzip
+	reverse_proxy app:8080 {
+		header_up -X-KT-Origin
+	}
+}
