@@ -122,6 +122,15 @@ describe("question picking", () => {
       expect(picked?.map((q) => q.id)).toEqual(["wizSMART-2026-03"]);
     }
   });
+
+  it("matches topics on the main focus area only, not the second tag", async () => {
+    const { db } = await world();
+    const { pickQuestions } = await import("../src/server/practice/engine.js");
+    // wizSMART-2026-03 is mainly NUM with LOG as its second tag.
+    expect(pickQuestions(db, 2, "focus", null, { help: "test", timerMinutes: null, focus: ["LOG"], count: 5 })).toBeNull();
+    const num = pickQuestions(db, 2, "focus", null, { help: "test", timerMinutes: null, focus: ["NUM"], count: 5 });
+    expect(num?.every((q) => q.focusPrimary === "NUM")).toBe(true);
+  });
 });
 
 describe("learn mode", () => {

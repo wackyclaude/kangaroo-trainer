@@ -348,15 +348,48 @@ select {
   width: 100%;
   max-width: 360px;
 }
+.level-guide {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+.level-guide > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 8px;
+}
+.level-guide dt {
+  font-weight: 700;
+  min-width: 9.5em;
+}
+.level-guide dd {
+  margin: 0;
+  color: var(--ink-soft);
+}
+.avatar-groups {
+  display: grid;
+  gap: 14px;
+}
+.avatar-group {
+  display: grid;
+  gap: 6px;
+}
+.avatar-group-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
 .avatar-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
 .avatar-choice {
-  width: 60px;
-  height: 60px;
-  font-size: 32px;
+  width: 54px;
+  height: 54px;
+  font-size: 28px;
+  line-height: 1;
+  transition: transform 0.12s ease;
   border-radius: 50%;
   border: var(--bw) solid var(--line);
   background: var(--card);
@@ -365,6 +398,12 @@ select {
 .avatar-choice[aria-pressed="true"] {
   background: var(--sun);
   box-shadow: inset 0 0 0 3px #fff;
+  transform: scale(1.08);
+}
+@media (hover: hover) {
+  .avatar-choice:hover {
+    transform: scale(1.08);
+  }
 }
 .message {
   border-left: 6px solid var(--berry);
@@ -2399,6 +2438,297 @@ body.calm {
 [data-skin="modern"] .speech::after {
   display: none;
 }
+/* ================= Livelier Space and Modern (Nov 2026 feedback) ================= */
+
+/* ---------- Space: twinkling stars, a ringed planet, glowing glass panels ---------- */
+:root[data-skin="space"] {
+  --glass: rgba(255, 255, 255, 0.86);
+  --glow: 0 10px 30px rgba(90, 75, 255, 0.16);
+  --glow-strong: 0 14px 40px rgba(90, 75, 255, 0.28);
+  --title-a: #3b2fd9;
+  --title-b: #c2185b;
+  --planet-op: 0.55;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-skin="space"]:not([data-theme="light"]) {
+    --paper: #070a24;
+    --glass: rgba(20, 26, 67, 0.74);
+    --glow: 0 0 0 1px rgba(143, 155, 255, 0.28), 0 12px 40px rgba(122, 108, 255, 0.22);
+    --glow-strong: 0 0 0 1px rgba(143, 155, 255, 0.55), 0 16px 50px rgba(122, 108, 255, 0.4);
+    --title-a: #ffffff;
+    --title-b: #a9b4ff;
+    --planet-op: 0.9;
+  }
+}
+:root[data-skin="space"][data-theme="dark"] {
+  --paper: #070a24;
+  --glass: rgba(20, 26, 67, 0.74);
+  --glow: 0 0 0 1px rgba(143, 155, 255, 0.28), 0 12px 40px rgba(122, 108, 255, 0.22);
+  --glow-strong: 0 0 0 1px rgba(143, 155, 255, 0.55), 0 16px 50px rgba(122, 108, 255, 0.4);
+  --title-a: #ffffff;
+  --title-b: #a9b4ff;
+  --planet-op: 0.9;
+}
+/* A second, twinkling star layer and a ringed planet, behind everything. */
+[data-skin="space"] body::before,
+[data-skin="space"] body::after {
+  content: "";
+  position: fixed;
+  pointer-events: none;
+  z-index: -1;
+}
+[data-skin="space"] body::before {
+  inset: 0;
+  background-image:
+    radial-gradient(2px 2px at 40px 60px, var(--stars) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 170px 20px, var(--stars) 50%, transparent 51%),
+    radial-gradient(2.5px 2.5px at 280px 150px, var(--stars) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 120px 260px, var(--stars) 50%, transparent 51%),
+    radial-gradient(2px 2px at 330px 300px, var(--stars) 50%, transparent 51%);
+  background-size: 380px 340px;
+  animation: space-twinkle 5s ease-in-out infinite alternate;
+}
+[data-skin="space"] body::after {
+  right: -90px;
+  bottom: -70px;
+  width: 340px;
+  height: 260px;
+  opacity: var(--planet-op);
+  background: no-repeat center / contain
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 340 260'%3E%3Cdefs%3E%3CradialGradient id='p' cx='35%25' cy='30%25' r='75%25'%3E%3Cstop offset='0' stop-color='%23ffb4d9'/%3E%3Cstop offset='.55' stop-color='%237a6cff'/%3E%3Cstop offset='1' stop-color='%23241a6b'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cellipse cx='170' cy='130' rx='165' ry='38' fill='none' stroke='%23ffd166' stroke-width='9' stroke-opacity='.55' transform='rotate(-14 170 130)'/%3E%3Ccircle cx='170' cy='130' r='92' fill='url(%23p)'/%3E%3Cpath d='M18 152 Q170 208 322 108' fill='none' stroke='%23ffd166' stroke-width='9' stroke-opacity='.85' transform='rotate(-14 170 130)'/%3E%3C/svg%3E");
+}
+@keyframes space-twinkle {
+  from { opacity: 0.25; }
+  to { opacity: 1; }
+}
+[data-skin="space"] body.calm::before,
+[data-skin="space"] body.calm::after {
+  display: none;
+}
+/* A shooting star now and then. */
+:root[data-skin="space"]::after {
+  content: "";
+  position: fixed;
+  top: 12%;
+  left: -20%;
+  width: 140px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--stars));
+  transform: rotate(-18deg);
+  pointer-events: none;
+  opacity: 0;
+  animation: shooting-star 14s linear infinite 3s;
+}
+@keyframes shooting-star {
+  0% { left: -20%; top: 10%; opacity: 0; }
+  2% { opacity: 1; }
+  8% { left: 75%; top: 32%; opacity: 0; }
+  100% { left: 75%; top: 32%; opacity: 0; }
+}
+:root[data-skin="space"]:has(body.calm)::after {
+  display: none;
+}
+[data-skin="space"] .panel {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--glow);
+}
+[data-skin="space"] .tile {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+@media (hover: hover) {
+  [data-skin="space"] .tile:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--glow-strong);
+  }
+}
+/* Each activity gets its own planet behind its icon. */
+[data-skin="space"] .go-tile .tile-icon {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--planet) 75%, #fff), var(--planet) 60%, color-mix(in srgb, var(--planet) 55%, #000));
+  box-shadow: 0 0 22px color-mix(in srgb, var(--planet) 55%, transparent);
+}
+[data-skin="space"] .go-tile .tile-icon svg {
+  width: 40px;
+  height: 40px;
+}
+/* The icon drawn in white on its planet. */
+[data-skin="space"] .go-tile svg.art :is(path, circle, rect, ellipse) {
+  fill: #fff;
+  stroke: #1b1f4b;
+}
+[data-skin="space"] .home-grid .go-tile:nth-child(4n + 1) { --planet: #ffb347; }
+[data-skin="space"] .home-grid .go-tile:nth-child(4n + 2) { --planet: #38c9d6; }
+[data-skin="space"] .home-grid .go-tile:nth-child(4n + 3) { --planet: #9b6bff; }
+[data-skin="space"] .home-grid .go-tile:nth-child(4n + 4) { --planet: #ff6fa8; }
+[data-skin="space"] h1 {
+  width: fit-content;
+  max-width: 100%;
+  background: linear-gradient(100deg, var(--title-a), var(--title-b));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+[data-skin="space"] .btn.primary {
+  background: linear-gradient(135deg, #ffd166, #ff9f6b);
+  color: #1b1f4b;
+  box-shadow: 0 4px 0 #b8742a, 0 0 22px rgba(255, 179, 71, 0.45);
+}
+[data-skin="space"] .btn.primary:active {
+  box-shadow: 0 0 0 #b8742a, 0 0 22px rgba(255, 179, 71, 0.45);
+}
+[data-skin="space"] .countdown {
+  background: linear-gradient(140deg, color-mix(in srgb, var(--sky) 28%, var(--card)), color-mix(in srgb, #ff6fa8 18%, var(--card)));
+}
+
+/* ---------- Modern: your own colour, an aurora glow, app-icon tiles ---------- */
+:root[data-skin="modern"] {
+  --accent-2: #c084fc;
+}
+:root[data-skin="modern"][data-theme="light"] {
+  --accent-2: #7c3aed;
+  --aurora: 8%;
+}
+:root[data-skin="modern"][data-accent="mint"]:not([data-theme="light"]) { --sun: #34d399; --sun-deep: #10b981; --sky: #34d399; --accent-2: #22d3ee; }
+:root[data-skin="modern"][data-accent="coral"]:not([data-theme="light"]) { --sun: #ff7a59; --sun-deep: #f25c3b; --sky: #ff7a59; --accent-2: #ffb347; }
+:root[data-skin="modern"][data-accent="lime"]:not([data-theme="light"]) { --sun: #a3e635; --sun-deep: #84cc16; --sky: #a3e635; --accent-2: #34d399; }
+:root[data-skin="modern"][data-accent="sky"]:not([data-theme="light"]) { --sun: #38bdf8; --sun-deep: #0ea5e9; --sky: #38bdf8; --accent-2: #818cf8; }
+:root[data-skin="modern"][data-accent="pink"]:not([data-theme="light"]) { --sun: #f472b6; --sun-deep: #ec4899; --sky: #f472b6; --accent-2: #c084fc; }
+:root[data-skin="modern"][data-theme="light"][data-accent="mint"] { --sun: #047857; --sun-deep: #065f46; --sky: #047857; --accent-2: #0e7490; }
+:root[data-skin="modern"][data-theme="light"][data-accent="coral"] { --sun: #c2410c; --sun-deep: #9a3412; --sky: #c2410c; --accent-2: #b45309; }
+:root[data-skin="modern"][data-theme="light"][data-accent="lime"] { --sun: #3f6212; --sun-deep: #365314; --sky: #3f6212; --accent-2: #047857; }
+:root[data-skin="modern"][data-theme="light"][data-accent="sky"] { --sun: #0369a1; --sun-deep: #075985; --sky: #0369a1; --accent-2: #4338ca; }
+:root[data-skin="modern"][data-theme="light"][data-accent="pink"] { --sun: #be185d; --sun-deep: #9d174d; --sky: #be185d; --accent-2: #7c3aed; }
+
+[data-skin="modern"] body {
+  background-image:
+    radial-gradient(760px 380px at 6% -14%, color-mix(in srgb, var(--sun) var(--aurora, 24%), transparent), transparent 70%),
+    radial-gradient(560px 320px at 100% -8%, color-mix(in srgb, var(--accent-2) var(--aurora, 24%), transparent), transparent 70%);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+[data-skin="modern"] body.calm {
+  background-image: none;
+}
+[data-skin="modern"] h1 {
+  width: fit-content;
+  max-width: 100%;
+  background: linear-gradient(100deg, var(--ink) 10%, var(--sun) 70%, var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+[data-skin="modern"] .panel {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ink) 3%, var(--card)), var(--card));
+}
+[data-skin="modern"] .tile {
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+@media (hover: hover) {
+  [data-skin="modern"] .tile:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--sun) 70%, var(--line));
+    box-shadow: 0 12px 32px color-mix(in srgb, var(--sun) 18%, transparent);
+  }
+}
+[data-skin="modern"] .btn.primary {
+  background: linear-gradient(135deg, var(--sun), var(--accent-2));
+  border-color: transparent;
+}
+/* Activity icons sit in rounded "app icon" squares in your colour. */
+[data-skin="modern"] .go-tile .tile-icon {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--sun), var(--accent-2));
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--sun) 30%, transparent);
+}
+[data-skin="modern"] .go-tile .tile-icon svg {
+  width: 34px;
+  height: 34px;
+}
+[data-skin="modern"] .go-tile svg.art :is(path, circle, rect, ellipse) {
+  stroke: var(--on-sun);
+}
+[data-skin="modern"] .go-tile svg.art text {
+  fill: var(--on-sun);
+}
+[data-skin="modern"] .stat-num,
+[data-skin="modern"] .days-left {
+  font-variant-numeric: tabular-nums;
+}
+[data-skin="modern"] .countdown {
+  background: linear-gradient(140deg, color-mix(in srgb, var(--sun) 22%, var(--card)), color-mix(in srgb, var(--accent-2) 12%, var(--card)));
+}
+/* Modern celebrates too: thin streamers in your colours. */
+[data-skin="modern"] .confetti {
+  display: block;
+}
+[data-skin="modern"] .confetti span {
+  width: 4px;
+  height: 18px;
+  border-radius: 4px;
+}
+
+/* The accent picker (Modern). */
+.accent-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.accent-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 14px 6px 8px;
+  border: var(--bw) solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.accent-dot[aria-checked="true"] {
+  outline: 3px solid var(--sun);
+  outline-offset: 2px;
+}
+.accent-swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+}
+.accent-violet .accent-swatch { background: linear-gradient(135deg, #8b9bff, #c084fc); }
+.accent-mint .accent-swatch { background: linear-gradient(135deg, #34d399, #22d3ee); }
+.accent-coral .accent-swatch { background: linear-gradient(135deg, #ff7a59, #ffb347); }
+.accent-lime .accent-swatch { background: linear-gradient(135deg, #a3e635, #34d399); }
+.accent-sky .accent-swatch { background: linear-gradient(135deg, #38bdf8, #818cf8); }
+.accent-pink .accent-swatch { background: linear-gradient(135deg, #f472b6, #c084fc); }
+.look-swatch.modern {
+  background: radial-gradient(120px 70px at 10% 0%, rgba(139, 155, 255, 0.45), transparent 70%), #0c0e12;
+}
+.look-swatch.modern .sw-a { background: linear-gradient(90deg, #8b9bff, #c084fc); }
+.look-swatch.space::after {
+  content: "";
+  position: absolute;
+  right: -14px;
+  bottom: -18px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffb4d9, #7a6cff 55%, #241a6b);
+}
+
 /* Printing always uses the plain light exercise-book colours, whatever the theme. */
 @media print {
   :root,
@@ -2418,5 +2748,14 @@ body.calm {
   }
   [data-skin] body {
     background-image: none !important;
+  }
+  [data-skin] body::before,
+  [data-skin] body::after,
+  :root[data-skin]::after {
+    display: none !important;
+  }
+  [data-skin] h1 {
+    background: none !important;
+    color: var(--ink) !important;
   }
 }

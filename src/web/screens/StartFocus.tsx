@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FOCUS_AREAS, OLY_LEVEL_TEXT, OLY_PARTS, TIERS, type FocusArea, type HelpLevel, type OlyPart, type Tier } from "../../shared/types";
+import { FOCUS_AREAS, OLY_LEVEL_NAME, OLY_LEVEL_TEXT, OLY_PARTS, TIER_TEXT, TIERS, type FocusArea, type HelpLevel, type OlyLevel, type OlyPart, type Tier } from "../../shared/types";
 import { useContest, useLevelRange, withContest } from "../contest";
 import { api, messageOf } from "../api";
 import { Chips, Segmented } from "../components/Segmented";
@@ -74,15 +74,19 @@ export function StartFocus() {
             <Chips label="Part" values={parts} onChange={setParts} options={OLY_PARTS.map((p) => ({ value: p, label: p === "A" ? "A: multiple choice" : "B: type the answer" }))} />
             <h2 style={{ marginTop: 12 }}>Which levels?</h2>
             <Chips label="Levels" values={levels} onChange={setLevels} options={range.map((l) => ({ value: String(l), label: `Level ${l}` }))} />
+            <LevelGuide items={range.map((l) => ({ name: `Level ${l} · ${OLY_LEVEL_NAME[l as OlyLevel]}`, text: `${OLY_LEVEL_TEXT[l as OlyLevel]} got it right.` }))} />
             <p className="muted small-line" style={{ margin: 0 }}>
-              None picked = all of {range.length === 1 ? `level ${range[0]}` : `levels ${range[0]}–${range[range.length - 1]}`} (the range your parent set). Level 1: {OLY_LEVEL_TEXT[1]}; level{" "}
-              {range[range.length - 1]}: {OLY_LEVEL_TEXT[range[range.length - 1]!]}.
+              None picked = all of {range.length === 1 ? `level ${range[0]}` : `levels ${range[0]}–${range[range.length - 1]}`} (the range your parent set).
             </p>
           </>
         ) : (
           <>
             <h2 style={{ marginTop: 12 }}>How hard?</h2>
             <Chips label="Difficulty" values={tiers} onChange={setTiers} options={TIERS.map((t) => ({ value: t, label: TIER_LABEL[t] }))} />
+            <LevelGuide items={TIERS.map((t) => ({ name: TIER_LABEL[t], text: TIER_TEXT[t] }))} />
+            <p className="muted small-line" style={{ margin: 0 }}>
+              None picked = a mix of all three.
+            </p>
           </>
         )}
       </section>
@@ -123,5 +127,19 @@ export function StartFocus() {
         </p>
       </section>
     </div>
+  );
+}
+
+/** One line per level, under the level chips. */
+function LevelGuide({ items }: { items: { name: string; text: string }[] }) {
+  return (
+    <dl className="level-guide">
+      {items.map((i) => (
+        <div key={i.name}>
+          <dt>{i.name}</dt>
+          <dd>{i.text}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }

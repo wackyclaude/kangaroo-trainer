@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { addStudent, cookieFrom, makeApp, setupParent, SETUP_CODE } from "./helpers.js";
+import { MAX_STUDENTS } from "../src/shared/types.js";
 import { readSession, createSession } from "../src/server/auth/session.js";
 
 describe("first-time setup", () => {
@@ -30,17 +31,17 @@ describe("first-time setup", () => {
 });
 
 describe("profiles", () => {
-  it("lets only the parent add students, with 4-digit PINs and unique nicknames, up to 5", async () => {
+  it("lets only the parent add students, with 4-digit PINs and unique nicknames, up to 20", async () => {
     const { app } = await makeApp();
     const parent = await setupParent(app);
     expect((await addStudent(app, parent, "Mira", "123")).statusCode).toBe(400);
     expect((await addStudent(app, parent, "Mira")).statusCode).toBe(201);
     expect((await addStudent(app, parent, "Mira")).statusCode).toBe(409);
-    for (const n of ["A", "B", "C", "D"]) expect((await addStudent(app, parent, n)).statusCode).toBe(201);
-    expect((await addStudent(app, parent, "F")).statusCode).toBe(409);
+    for (let i = 2; i <= MAX_STUDENTS; i++) expect((await addStudent(app, parent, `Kid ${i}`)).statusCode).toBe(201);
+    expect((await addStudent(app, parent, "One too many")).statusCode).toBe(409);
 
     const list = (await app.inject("/api/profiles")).json();
-    expect(list).toHaveLength(6);
+    expect(list).toHaveLength(MAX_STUDENTS + 1);
     expect(JSON.stringify(list)).not.toContain("pin");
   });
 

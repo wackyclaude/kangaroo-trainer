@@ -79,13 +79,15 @@ export function pickQuestions(db: Db, profileId: number, mode: PracticeMode, pap
   }
 
   // Focus quiz: filter, leave out recently-mastered questions, shuffle, then easiest first.
+  // Topics match the question's main focus area only, so "Number & arithmetic" never brings a
+  // geometry question that merely uses some arithmetic.
   const focus = new Set<string>(s.focus ?? []);
   const tiers = new Set<string>(contest === "olympiad" ? [] : (s.tiers ?? []));
   const years = new Set<number>(s.years ?? []);
   const parts = new Set<string>(contest === "olympiad" ? (s.parts ?? []) : []);
   const candidates = usable.filter(
     (q) =>
-      (focus.size === 0 || focus.has(q.focusPrimary) || (q.focusSecondary !== null && focus.has(q.focusSecondary))) &&
+      (focus.size === 0 || focus.has(q.focusPrimary)) &&
       (tiers.size === 0 || tiers.has(q.tier)) &&
       (parts.size === 0 || (q.part !== null && parts.has(q.part))) &&
       (years.size === 0 || years.has(q.year)),

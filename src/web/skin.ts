@@ -1,19 +1,22 @@
 import { createContext, useContext } from "react";
-import { APPEARANCES, SKINS, type Appearance, type Skin } from "../shared/types";
+import { ACCENTS, APPEARANCES, SKINS, type Accent, type Appearance, type Skin } from "../shared/types";
 
 export interface Look {
   theme: Skin;
   appearance: Appearance;
+  accent: Accent;
 }
 
 const KEY = "kt.look";
-export const DEFAULT_LOOK: Look = { theme: "classic", appearance: "auto" };
+export const DEFAULT_LOOK: Look = { theme: "classic", appearance: "auto", accent: "violet" };
 
 /** The look last used on this device, so the profile picker matches before anyone signs in. */
 export function deviceLook(): Look {
   try {
     const v = JSON.parse(window.localStorage.getItem(KEY) ?? "null") as Partial<Look> | null;
-    if (v && (SKINS as readonly string[]).includes(v.theme ?? "") && (APPEARANCES as readonly string[]).includes(v.appearance ?? "")) return v as Look;
+    if (v && (SKINS as readonly string[]).includes(v.theme ?? "") && (APPEARANCES as readonly string[]).includes(v.appearance ?? "")) {
+      return { theme: v.theme!, appearance: v.appearance!, accent: (ACCENTS as readonly string[]).includes(v.accent ?? "") ? v.accent! : "violet" };
+    }
   } catch {
     /* private mode or bad value */
   }
@@ -24,6 +27,7 @@ export function deviceLook(): Look {
 export function applyLook(look: Look) {
   const root = document.documentElement;
   root.dataset.skin = look.theme;
+  root.dataset.accent = look.accent;
   if (look.appearance === "auto") delete root.dataset.theme;
   else root.dataset.theme = look.appearance;
   try {

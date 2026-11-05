@@ -41,9 +41,9 @@ export function App() {
   useEffect(() => applyLook(look), [look]);
   const lookCtx = useMemo(() => ({ look, setLook: setLookState }), [look]);
   // Signed in: the profile's own look.
-  const meLook = view.kind === "in" ? `${view.me.theme}/${view.me.appearance}` : "";
+  const meLook = view.kind === "in" ? `${view.me.theme}/${view.me.appearance}/${view.me.accent}` : "";
   useEffect(() => {
-    if (view.kind === "in") setLookState({ theme: view.me.theme, appearance: view.me.appearance });
+    if (view.kind === "in") setLookState({ theme: view.me.theme, appearance: view.me.appearance, accent: view.me.accent });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meLook]);
 

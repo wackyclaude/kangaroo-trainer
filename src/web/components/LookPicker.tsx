@@ -1,13 +1,13 @@
 import { useState } from "react";
-import { SKIN_NAMES, SKINS, type Appearance, type Skin } from "../../shared/types";
+import { ACCENT_NAMES, ACCENTS, SKIN_NAMES, SKINS, type Accent, type Appearance, type Skin } from "../../shared/types";
 import { api, messageOf } from "../api";
 import { useLook } from "../skin";
 import { Segmented } from "./Segmented";
 
 const LINE: Record<Skin, string> = {
   classic: "Squared paper, stickers and Roo the kangaroo.",
-  space: "Stars, planets and Nova the alien astronaut.",
-  modern: "Clean and dark. No cartoons.",
+  space: "Twinkling stars, glowing panels and Nova the alien astronaut.",
+  modern: "Sleek and dark, in your own colour. No cartoons.",
 };
 
 /** The student picks her own theme. It is saved to her profile, so every device shows it. */
@@ -15,12 +15,12 @@ export function LookPicker() {
   const { look, setLook } = useLook();
   const [error, setError] = useState("");
 
-  const save = async (theme: Skin, appearance: Appearance) => {
+  const save = async (theme: Skin, appearance: Appearance, accent: Accent = look.accent) => {
     const before = look;
-    setLook({ theme, appearance }); // show it straight away
+    setLook({ theme, appearance, accent }); // show it straight away
     setError("");
     try {
-      await api.put("/api/me/look", { theme, appearance });
+      await api.put("/api/me/look", { theme, appearance, accent });
     } catch (e) {
       setLook(before);
       setError(messageOf(e));
@@ -65,6 +65,19 @@ export function LookPicker() {
         <span className="setting-name">Light or dark</span>
         <Segmented label="Light or dark" value={mode} onChange={(a) => save(look.theme, a)} options={modes} />
       </div>
+      {look.theme === "modern" && (
+        <div className="setting">
+          <span className="setting-name">My colour</span>
+          <div className="accent-row" role="radiogroup" aria-label="My colour">
+            {ACCENTS.map((a) => (
+              <button key={a} type="button" role="radio" aria-checked={look.accent === a} className={`accent-dot accent-${a}`} onClick={() => save(look.theme, look.appearance, a)}>
+                <span className="accent-swatch" aria-hidden="true" />
+                {ACCENT_NAMES[a]}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       {error && (
         <div className="message" role="alert">
           {error}
