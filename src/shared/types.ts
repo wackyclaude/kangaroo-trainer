@@ -13,10 +13,23 @@ export type FocusArea = keyof typeof FOCUS_AREAS;
 export const TIERS = ["warm-up", "core", "challenge"] as const;
 export type Tier = (typeof TIERS)[number];
 
-export const AVATARS = ["🦘", "🦊", "🦉", "🐼", "🐸", "🐧", "🐯", "🐙", "🦄", "🐢"] as const;
+/** One line per difficulty: the tiers are the thirds of a Kangaroo paper. */
+export const TIER_TEXT: Record<Tier, string> = {
+  "warm-up": "The first third of a paper: friendly starters to get going.",
+  core: "The middle third: a proper think, but you'll get there.",
+  challenge: "The last third: the trickiest puzzles in the paper.",
+};
+
+/** Avatars in groups for the picker (the first ten are the originals, so older profiles stay valid). */
+export const AVATAR_GROUPS = {
+  Animals: ["🦘", "🦊", "🦉", "🐼", "🐸", "🐧", "🐯", "🐙", "🦄", "🐢", "🐱", "🐶", "🐺", "🦁", "🐨", "🦝", "🦦", "🦥", "🐬", "🦈", "🦩", "🦋", "🦖", "🐉"],
+  Characters: ["👽", "🤖", "👾", "👻", "🥷", "🧙", "🦸", "🧝", "😎", "🤓", "🤠", "🤩"],
+  "Cool stuff": ["🚀", "🪐", "🌙", "⭐", "⚡", "🔥", "🌈", "💎", "👑", "🎮", "🎧", "🎸", "🛹", "🏀", "⚽", "🎨", "📸", "🍕", "🍩", "🧋", "🍓", "🌵", "🍄", "🌸", "🧁"],
+} as const;
+export const AVATARS = [...AVATAR_GROUPS.Animals, ...AVATAR_GROUPS.Characters, ...AVATAR_GROUPS["Cool stuff"]] as const;
 export type Avatar = (typeof AVATARS)[number];
 
-export const MAX_STUDENTS = 5;
+export const MAX_STUDENTS = 20;
 
 export type Role = "student" | "parent";
 
@@ -42,6 +55,7 @@ export interface Me {
   /** The look this profile picked. */
   theme: Skin;
   appearance: Appearance;
+  accent: Accent;
 }
 
 // ---------- themes (M9) ----------
@@ -52,6 +66,10 @@ export const SKIN_NAMES: Record<Skin, string> = { classic: "Exercise book", spac
 export const APPEARANCES = ["auto", "light", "dark"] as const;
 /** auto = follow the device (Modern: dark unless set to light). */
 export type Appearance = (typeof APPEARANCES)[number];
+/** The Modern theme's highlight colour, picked by the student. */
+export const ACCENTS = ["violet", "mint", "coral", "lime", "sky", "pink"] as const;
+export type Accent = (typeof ACCENTS)[number];
+export const ACCENT_NAMES: Record<Accent, string> = { violet: "Violet", mint: "Mint", coral: "Coral", lime: "Lime", sky: "Sky", pink: "Pink" };
 
 // ---------- contests (M8) ----------
 
@@ -63,12 +81,14 @@ export const CONTEST_NAMES: Record<Contest, string> = { kangaroo: "Kangaroo", ol
 export const OLY_LEVELS = [1, 2, 3, 4, 5] as const;
 export type OlyLevel = (typeof OLY_LEVELS)[number];
 export const OLY_LEVEL_TEXT: Record<OlyLevel, string> = {
-  1: "half or more of klas 1 got it right",
+  1: "half or more of klas 1",
   2: "35–49% of klas 1",
   3: "20–34% of klas 1",
   4: "10–19% of klas 1",
   5: "under 10% of klas 1",
 };
+/** A short name for each Olympiad level, for the level picker. */
+export const OLY_LEVEL_NAME: Record<OlyLevel, string> = { 1: "Warm-up", 2: "Steady", 3: "Tricky", 4: "Tough", 5: "Expert" };
 export const OLY_PAPER_MINUTES = 120;
 export const OLY_MAX_SCORE = 36;
 export const OLY_PARTS = ["A", "B"] as const;

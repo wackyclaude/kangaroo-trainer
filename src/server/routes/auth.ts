@@ -1,12 +1,13 @@
 import crypto from "node:crypto";
 import { profileSettings } from "../practice/contest.js";
-import { APPEARANCES, DEFAULT_OLYMPIAD, SKINS, type Appearance, type Skin } from "../../shared/types.js";
+import { ACCENTS, APPEARANCES, DEFAULT_OLYMPIAD, SKINS, type Accent, type Appearance, type Skin } from "../../shared/types.js";
 
 /** Stored values are checked again on the way out, so an odd value can't break the app. */
-export function lookOf(row: { theme: string | null; appearance: string | null } | undefined): { theme: Skin; appearance: Appearance } {
+export function lookOf(row: { theme: string | null; appearance: string | null; accent?: string | null } | undefined): { theme: Skin; appearance: Appearance; accent: Accent } {
   const theme = (SKINS as readonly string[]).includes(row?.theme ?? "") ? (row!.theme as Skin) : "classic";
   const appearance = (APPEARANCES as readonly string[]).includes(row?.appearance ?? "") ? (row!.appearance as Appearance) : "auto";
-  return { theme, appearance };
+  const accent = (ACCENTS as readonly string[]).includes(row?.accent ?? "") ? (row!.accent as Accent) : "violet";
+  return { theme, appearance, accent };
 }
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
@@ -127,12 +128,12 @@ export async function authRoutes(app: FastifyInstance, deps: AuthDeps): Promise<
     const u = requireUser(req, reply);
     if (!u) return;
     const extra = profileSettings(deps.db, u.id);
-    const look = lookOf(deps.db.select({ theme: profile.theme, appearance: profile.appearance }).from(profile).where(eq(profile.id, u.id)).get());
+    const look = lookOf(deps.db.select({ theme: profile.theme, appearance: profile.appearance, accent: profile.accent }).from(profile).where(eq(profile.id, u.id)).get());
     return { ...u, contests: extra?.contests ?? ["kangaroo"], olympiad: extra?.olympiad ?? DEFAULT_OLYMPIAD, ...look };
   });
 
   // Anyone signed in picks their own look. Nothing else on the profile changes.
-  const Look = z.object({ theme: z.enum(SKINS), appearance: z.enum(APPEARANCES) }).strict();
+  const Look = z.object({ theme: z.enum(SKINS), appearance: z.enum(APPEARANCES), accent: z.enum(ACCENTS).optional() }).strict();
   app.put("/api/me/look", async (req, reply) => {
     const u = requireUser(req, reply);
     if (!u) return;

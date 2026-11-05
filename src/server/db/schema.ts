@@ -23,6 +23,7 @@ export const profile = sqliteTable(
     // The look the student picked (classic, space, modern) and light/dark; null = classic, follow the device.
     theme: text("theme"),
     appearance: text("appearance"),
+    accent: text("accent"),
     createdAt: integer("created_at").notNull(),
   },
   (t) => [uniqueIndex("profile_nickname_uq").on(t.nickname)],
