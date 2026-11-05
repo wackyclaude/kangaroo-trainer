@@ -39,7 +39,19 @@ export interface Me {
   contests: Contest[];
   /** The question levels this student may get in short Olympiad quizzes. */
   olympiad: OlympiadSettings;
+  /** The look this profile picked. */
+  theme: Skin;
+  appearance: Appearance;
 }
+
+// ---------- themes (M9) ----------
+
+export const SKINS = ["classic", "space", "modern"] as const;
+export type Skin = (typeof SKINS)[number];
+export const SKIN_NAMES: Record<Skin, string> = { classic: "Exercise book", space: "Space", modern: "Modern" };
+export const APPEARANCES = ["auto", "light", "dark"] as const;
+/** auto = follow the device (Modern: dark unless set to light). */
+export type Appearance = (typeof APPEARANCES)[number];
 
 // ---------- contests (M8) ----------
 
