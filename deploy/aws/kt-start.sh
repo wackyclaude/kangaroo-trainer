@@ -9,6 +9,7 @@ param() { aws ssm get-parameter --name "/kangaroo/$1" --with-decryption --query 
 HOST=$(param hostname)
 SECRET=$(param origin-secret)
 BUCKET=$(param content-bucket)
+PUBLIC_HOSTS=$(param public-hosts 2>/dev/null || true)
 
 aws s3 sync "s3://$BUCKET/content/" /srv/kt/content/ --delete --only-show-errors
 
@@ -17,6 +18,7 @@ umask 077
 cat > .env <<ENV
 KT_HOSTNAME=$HOST
 KT_ORIGIN_SECRET=$SECRET
+KT_PUBLIC_HOSTS=$PUBLIC_HOSTS
 KT_CONTENT_DIR=/srv/kt/content
 KT_DATA_DIR=/srv/kt/data
 KT_BACKUP_DIR=/srv/kt/backups

@@ -245,6 +245,10 @@ JSON
   aws cloudfront tag-resource --resource "arn:aws:cloudfront::$ACCOUNT:distribution/$DIST" --tags "Items=[{$TAG}]"
 fi
 DOMAIN=$(aws cloudfront get-distribution --id "$DIST" --query Distribution.DomainName --output text)
+# The addresses people use (the app checks form posts against them). Keeps any domain added later.
+HOSTS=$(aws ssm get-parameter --name /kangaroo/public-hosts --query Parameter.Value --output text 2>/dev/null || true)
+case ",$HOSTS," in *",$DOMAIN,"*) ;; *) HOSTS="${HOSTS:+$HOSTS,}$DOMAIN" ;; esac
+aws ssm put-parameter --name /kangaroo/public-hosts --type String --value "$HOSTS" --overwrite >/dev/null
 
 step "Done"
 echo "Server:      $IID ($EIP, $HOST)"

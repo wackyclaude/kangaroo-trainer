@@ -39,7 +39,7 @@ You need the apps-prod account, region **Europe (Stockholm)**, and the question 
 
 ## Everyday jobs
 
-- **Update the app:** in Session Manager, run `cd /srv/kt/app && sudo git pull && sudo systemctl restart kt`.
+- **Update the app:** in Session Manager, run `cd /srv/kt/app && sudo git fetch -q origin && sudo git checkout -q origin/main && sudo systemctl restart kt` (it rebuilds, a few minutes).
 - **New questions or explanations:** upload a new `kt-content.tar.gz` to CloudShell and run `bash setup.sh` again (it only changes what's different), then restart the server or run `sudo systemctl restart kt`.
 - **Always on instead of off at night:** `NIGHT_OFF=no bash setup.sh`. Other hours: `STOP_AT=21 START_AT=6 bash setup.sh`.
 - **Logs:** `cd /srv/kt/app && sudo docker compose logs --tail 100`.
@@ -51,5 +51,7 @@ You need the apps-prod account, region **Europe (Stockholm)**, and the question 
 2. Request a certificate for it in **Certificate Manager, region us-east-1** (CloudFront only uses certificates from there), with DNS validation.
 3. Add the domain to the distribution (**Alternate domain names**) and choose the certificate.
 4. In Route 53, add an **A/AAAA alias** record pointing to the distribution.
+
+5. Add the domain to the app's list of addresses, then restart it: in CloudShell `aws ssm put-parameter --name /kangaroo/public-hosts --type String --overwrite --value "d….cloudfront.net,www.example.nl"`, and on the server `sudo systemctl restart kt`.
 
 The server and its sslip.io name stay as they are.
