@@ -1,6 +1,7 @@
 // Small hand-drawn style illustrations, bundled with the app (nothing loads from outside).
 // Outlines use the ink colour, so they follow light and dark mode. They never show answers.
 import type { BadgeId, FocusArea } from "../../shared/types";
+import { useSkin } from "../skin";
 
 const S = { stroke: "var(--ink)", strokeWidth: 3, strokeLinejoin: "round" as const, strokeLinecap: "round" as const };
 const SUN = "#FFC23D";
@@ -13,7 +14,7 @@ const ORANGE = "#FFA45C";
 
 function Svg({ size, children, label }: { size: number; children: React.ReactNode; label?: string }) {
   return (
-    <svg viewBox="0 0 64 64" width={size} height={size} aria-hidden={label ? undefined : true} role={label ? "img" : undefined} aria-label={label} focusable="false">
+    <svg className="art" viewBox="0 0 64 64" width={size} height={size} aria-hidden={label ? undefined : true} role={label ? "img" : undefined} aria-label={label} focusable="false">
       {children}
     </svg>
   );
@@ -133,11 +134,46 @@ export function TileIcon({ kind, size = 56 }: { kind: TileArt; size?: number }) 
 
 /** A round medal for each badge. Not earned yet = grey and dashed. */
 export function BadgeMedal({ id, earned, size = 64 }: { id: BadgeId; earned: boolean; size?: number }) {
+  const skin = useSkin();
+  if (skin === "space") return <MissionPatch id={id} earned={earned} size={size} />;
+  if (skin === "modern") return <LineBadge id={id} earned={earned} size={size} />;
   const fill = earned ? MEDAL_FILL[id] ?? SUN : "var(--paper)";
   return (
     <svg viewBox="0 0 64 64" width={size} height={size} aria-hidden="true" focusable="false" className={earned ? "medal" : "medal locked"} style={earned ? ({ "--ink": "#1F2A56" } as React.CSSProperties) : undefined}>
       <circle cx="32" cy="32" r="27" fill={fill} stroke="var(--ink)" strokeWidth={3} strokeDasharray={earned ? undefined : "6 5"} />
       <circle cx="32" cy="32" r="20" fill={earned ? "#fff" : "none"} stroke="var(--ink)" strokeWidth={2} opacity={earned ? 1 : 0.4} />
+      <g opacity={earned ? 1 : 0.35}>{medalSymbol(id)}</g>
+    </svg>
+  );
+}
+
+/** Space: a mission patch, a shield with a planet ring and stars. */
+function MissionPatch({ id, earned, size }: { id: BadgeId; earned: boolean; size: number }) {
+  const fill = earned ? (MEDAL_FILL[id] ?? SUN) : "var(--paper)";
+  return (
+    <svg viewBox="0 0 64 64" width={size} height={size} aria-hidden="true" focusable="false" className={earned ? "medal" : "medal locked"} style={earned ? ({ "--ink": "#1F2A56" } as React.CSSProperties) : undefined}>
+      <path d="M32 3 L57 12 V32 C57 47 46 56 32 61 C18 56 7 47 7 32 V12 Z" fill={earned ? "#141A43" : "none"} stroke={earned ? "#8F9BFF" : "var(--ink)"} strokeWidth={3} strokeLinejoin="round" strokeDasharray={earned ? undefined : "6 5"} />
+      <circle cx="32" cy="32" r="18" fill={earned ? fill : "none"} stroke={earned ? "#1F2A56" : "var(--ink)"} strokeWidth={2} opacity={earned ? 1 : 0.4} />
+      {earned && (
+        <>
+          <ellipse cx="32" cy="32" rx="27" ry="7" fill="none" stroke="#FFD166" strokeWidth={2} transform="rotate(-18 32 32)" opacity={0.9} />
+          <circle cx="14" cy="16" r="1.6" fill="#fff" />
+          <circle cx="50" cy="18" r="1.2" fill="#fff" />
+          <circle cx="47" cy="50" r="1.4" fill="#fff" />
+        </>
+      )}
+      <g opacity={earned ? 1 : 0.35} transform="translate(32 32) scale(0.82) translate(-32 -32)">
+        {medalSymbol(id)}
+      </g>
+    </svg>
+  );
+}
+
+/** Modern: a thin ring and the symbol as a line drawing in the accent colour. */
+function LineBadge({ id, earned, size }: { id: BadgeId; earned: boolean; size: number }) {
+  return (
+    <svg viewBox="0 0 64 64" width={size} height={size} aria-hidden="true" focusable="false" className={`art medal-line${earned ? "" : " locked"}`}>
+      <circle cx="32" cy="32" r="28" strokeDasharray={earned ? undefined : "3 5"} />
       <g opacity={earned ? 1 : 0.35}>{medalSymbol(id)}</g>
     </svg>
   );
@@ -226,6 +262,7 @@ function medalSymbol(id: BadgeId) {
 }
 
 /** The area picture as plain SVG children (for use inside a medal). */
+// (Kept skin-neutral: the frame around it carries the theme.)
 function AreaArtRaw({ area }: { area: FocusArea }) {
   const svg = AreaArt({ area, size: 64 }) as React.ReactElement<{ children: React.ReactNode }>;
   return <>{svg.props.children}</>;

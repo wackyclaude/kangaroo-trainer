@@ -9,6 +9,7 @@ import { MascotSays, type Mood } from "../components/Mascot";
 import { RewardStrip } from "../components/RewardStrip";
 import { Countdown, ReadinessCard } from "../components/Readiness";
 import { ContestSwitch } from "../components/ContestSwitch";
+import { LookPicker } from "../components/LookPicker";
 import { useContest, withContest } from "../contest";
 
 /** What Roo says on the home screen. Encouraging, never about other children. */
@@ -186,6 +187,8 @@ export function StudentHome({ me }: { me: Me }) {
           </ul>
         </section>
       )}
+
+      <LookPicker />
 
       <section>
         {browse ? (

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Me, ProfileCard } from "../shared/types";
 import { api, ApiFailure, messageOf } from "./api";
 import { TopBar } from "./components/TopBar";
@@ -17,6 +17,7 @@ import { StartQuick } from "./screens/StartQuick";
 import { Print } from "./screens/Print";
 import { AnswerSheet } from "./screens/AnswerSheet";
 import { MeContext } from "./contest";
+import { applyLook, deviceLook, LookContext, type Look } from "./skin";
 
 type View = { kind: "loading" } | { kind: "error"; text: string } | { kind: "setup" } | { kind: "pick" } | { kind: "pin"; profile: ProfileCard } | { kind: "in"; me: Me };
 
@@ -36,6 +37,15 @@ function useHash(): string {
 export function App() {
   const [view, setView] = useState<View>({ kind: "loading" });
   const hash = useHash();
+  const [look, setLookState] = useState<Look>(deviceLook);
+  useEffect(() => applyLook(look), [look]);
+  const lookCtx = useMemo(() => ({ look, setLook: setLookState }), [look]);
+  // Signed in: the profile's own look.
+  const meLook = view.kind === "in" ? `${view.me.theme}/${view.me.appearance}` : "";
+  useEffect(() => {
+    if (view.kind === "in") setLookState({ theme: view.me.theme, appearance: view.me.appearance });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meLook]);
 
   const boot = useCallback(async () => {
     try {
@@ -64,6 +74,9 @@ export function App() {
     setView({ kind: "pick" });
   };
 
+  return <LookContext.Provider value={lookCtx}>{screen()}</LookContext.Provider>;
+
+  function screen() {
   switch (view.kind) {
     case "loading":
       return <main className="page" aria-busy="true" />;
@@ -117,5 +130,6 @@ export function App() {
         </MeContext.Provider>
       );
     }
+  }
   }
 }

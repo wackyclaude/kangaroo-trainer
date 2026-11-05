@@ -20,6 +20,9 @@ export const profile = sqliteTable(
     contests: text("contests", { mode: "json" }).$type<string[] | null>(),
     // Olympiad level range, stretch question, school day and target (see OlympiadSettings); null = defaults.
     olympiad: text("olympiad", { mode: "json" }).$type<Record<string, unknown> | null>(),
+    // The look the student picked (classic, space, modern) and light/dark; null = classic, follow the device.
+    theme: text("theme"),
+    appearance: text("appearance"),
     createdAt: integer("created_at").notNull(),
   },
   (t) => [uniqueIndex("profile_nickname_uq").on(t.nickname)],
