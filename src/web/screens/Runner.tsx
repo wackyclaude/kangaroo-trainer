@@ -6,6 +6,7 @@ import { Steps } from "../components/Steps";
 import { MascotSays } from "../components/Mascot";
 import { clock, focusColor, focusName, go, modeLabel } from "../format";
 import { MathKeypad, RevealBlock } from "../components/Olympiad";
+import { PupilStrip } from "../components/PupilStrip";
 
 type Local = Omit<SavedAnswer, "position">;
 
@@ -361,6 +362,9 @@ export function Runner({ sessionId }: { sessionId: number }) {
               ) : (
                 <p className="muted">The worked solution for this one is still being written.</p>
               ))}
+            {!oly && currentAnswer.reveal && !current.voidNote && (
+              <PupilStrip level={currentAnswer.reveal.level} pupils={currentAnswer.reveal.pupils} year={current.year} choice={currentAnswer.choice} />
+            )}
           </div>
         )}
 

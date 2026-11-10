@@ -87,6 +87,32 @@ export const OLY_LEVEL_TEXT: Record<OlyLevel, string> = {
   4: "10–19% of klas 1",
   5: "under 10% of klas 1",
 };
+/** Kangaroo difficulty, from the share of real wizSMART pupils who got the question right. */
+export const KANGAROO_LEVEL_TEXT: Record<OlyLevel, string> = {
+  1: "65% or more of pupils",
+  2: "50–64% of pupils",
+  3: "35–49% of pupils",
+  4: "20–34% of pupils",
+  5: "under 20% of pupils",
+};
+const KANGAROO_LEVEL_FLOOR: [OlyLevel, number][] = [
+  [1, 65],
+  [2, 50],
+  [3, 35],
+  [4, 20],
+];
+/** Level 1–5 for a share right (whole %). */
+export const kangarooLevel = (pctRight: number): OlyLevel => KANGAROO_LEVEL_FLOOR.find(([, floor]) => pctRight >= floor)?.[0] ?? 5;
+
+/** How real wizSMART pupils answered one question (whole %), from that year's report. */
+export interface PupilStats {
+  year: number;
+  right: number;
+  blank: number;
+  /** The wrong answer most pupils picked, when 15% or more fell for it. */
+  trap: { choice: Choice; pct: number } | null;
+}
+
 /** A short name for each Olympiad level, for the level picker. */
 export const OLY_LEVEL_NAME: Record<OlyLevel, string> = { 1: "Warm-up", 2: "Steady", 3: "Tricky", 4: "Tough", 5: "Expert" };
 export const OLY_PAPER_MINUTES = 120;
@@ -246,6 +272,8 @@ export interface Reveal {
   officialUrl: string | null;
   stats: ClassStats | null;
   level: OlyLevel | null;
+  /** Kangaroo: how real pupils answered; null when that year has no numbers (the level is then estimated). */
+  pupils?: PupilStats | null;
 }
 
 export interface SessionState {
@@ -289,6 +317,7 @@ export interface ResultRow {
   officialUrl: string | null;
   stats: ClassStats | null;
   level: OlyLevel | null;
+  pupils: PupilStats | null;
   correct: boolean;
   voided: boolean;
   timeMs: number;
@@ -405,6 +434,10 @@ export interface Insights {
   estimate: { score: number; low: number; high: number; papers: number } | null;
   totals: { answers: number; sessions: number; papers: number };
   tierTarget: Tier;
+  /** Kangaroo: the easiest level (1–5) that isn't 70% right yet; Smart mix stretches towards it. */
+  levelTarget: OlyLevel;
+  /** Kangaroo: right answers over the last 20 at each level. */
+  byLevel: { level: OlyLevel; answers: number; right: number }[];
   contest: Contest;
   /** Olympiad only. */
   olympiad?: OlympiadInsights;

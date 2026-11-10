@@ -21,7 +21,7 @@ import {
 } from "../../shared/types.js";
 import { olympiadPapers, paceMarks } from "../content/olympiad.js";
 import { profileSettings } from "../practice/contest.js";
-import { contestEstimate, FOCUS_KEYS, median, replayReviews, scoreAreas, speedStats, tierTarget, weakAreas, type Answer } from "./model.js";
+import { contestEstimate, FOCUS_KEYS, median, replayReviews, scoreAreas, speedStats, levelTarget, tierTarget, weakAreas, type Answer } from "./model.js";
 
 /**
  * The answer log for one profile, one entry per question per session (the final answer there).
@@ -206,6 +206,11 @@ export function buildInsights(db: Db, profileId: number, now = Date.now(), conte
     estimate: contest === "kangaroo" ? contestEstimate(papers) : null,
     totals: { answers: answers.length, sessions, papers: papers.length },
     tierTarget: tierTarget(answers),
+    levelTarget: levelTarget(answers),
+    byLevel: OLY_LEVELS.map((level) => {
+      const at = answers.filter((a) => a.difficulty === level).slice(-WIDEN_WINDOW);
+      return { level, answers: at.length, right: at.filter((a) => a.correct).length };
+    }),
     contest,
     ...(contest === "olympiad" ? { olympiad: olympiadInsights(db, profileId, answers) } : { vsAverage: vsAverage(db, profileId, compareGroupOf(who)) }),
   };

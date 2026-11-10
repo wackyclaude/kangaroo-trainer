@@ -1,6 +1,6 @@
 // Pure insight rules (no database). Everything here is calculated from the answer log,
 // so it can be rebuilt at any time and tested with plain arrays.
-import { FOCUS_AREAS, MASTERED_BOX, REVIEW_DAYS, TIERS, type FocusArea, type Level, type Tier } from "../../shared/types.js";
+import { FOCUS_AREAS, MASTERED_BOX, OLY_LEVELS, REVIEW_DAYS, TIERS, type FocusArea, type Level, type OlyLevel, type Tier } from "../../shared/types.js";
 
 const DAY = 86_400_000;
 
@@ -147,6 +147,30 @@ export function tierTarget(all: Answer[]): Tier {
     if (xs.filter((a) => a.correct).length / xs.length < 0.7) return t;
   }
   return "challenge";
+}
+
+/** Kangaroo: the easiest level (1–5) where fewer than 70% of the last 30 answers are right (or under 5 answers yet). */
+export function levelTarget(all: Answer[]): OlyLevel {
+  for (const l of OLY_LEVELS) {
+    const xs = all.filter((a) => a.difficulty === l).sort((x, y) => y.answeredAt - x.answeredAt).slice(0, WINDOW);
+    if (xs.length < 5) return l;
+    if (xs.filter((a) => a.correct).length / xs.length < 0.7) return l;
+  }
+  return 5;
+}
+
+/** Levels 1–5 that suit practice in an area at a given skill level. */
+export function levelsForSkill(level: Level): OlyLevel[] {
+  switch (level) {
+    case "starter":
+      return [1, 2];
+    case "developing":
+      return [2, 3];
+    case "solid":
+      return [3, 4];
+    case "competition-ready":
+      return [4, 5];
+  }
 }
 
 /** Tiers that suit practice in an area at a given level. */

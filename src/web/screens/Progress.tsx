@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CONTESTS, OLY_LEVEL_TEXT, TIERS, type Contest, type Insights, type Rewards, type SpeedFlag } from "../../shared/types";
+import { CONTESTS, KANGAROO_LEVEL_TEXT, OLY_LEVEL_TEXT, TIERS, type Contest, type Insights, type Rewards, type SpeedFlag } from "../../shared/types";
 import { fmtAverage } from "../../shared/benchmarks";
 import { useContest, withContest } from "../contest";
 import { ContestSwitch } from "../components/ContestSwitch";
@@ -193,6 +193,33 @@ export function Progress({ profileId, asParent }: { profileId?: number; asParent
         </section>
       )}
 
+      {ins.contest === "kangaroo" && ins.totals.answers > 0 && (
+        <section className="panel stack">
+          <h2>By level</h2>
+          <p className="muted" style={{ margin: 0 }}>
+            Right answers over the last 20 questions at each level. Level 1: {KANGAROO_LEVEL_TEXT[1]} got it right in the real contest; level 5: {KANGAROO_LEVEL_TEXT[5]}.
+          </p>
+          <table className="people">
+            <thead>
+              <tr>
+                <th scope="col">Level</th>
+                <th scope="col">Right</th>
+                <th scope="col">Real pupils</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ins.byLevel.map((l) => (
+                <tr key={l.level}>
+                  <td>Level {l.level}</td>
+                  <td>{l.answers ? `${l.right} of ${l.answers} (${Math.round((100 * l.right) / l.answers)}%)` : "—"}</td>
+                  <td>{KANGAROO_LEVEL_TEXT[l.level].replace(" of pupils", "")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+
       {ins.olympiad && (
         <section className="panel stack">
           <h2>By level</h2>
@@ -237,7 +264,7 @@ export function Progress({ profileId, asParent }: { profileId?: number; asParent
           ))}
         </div>
         <p className="muted" style={{ margin: 0 }}>
-          Smart mix picks about 60% of its questions from these areas, 30% at the {TIER_NAME[ins.tierTarget].toLowerCase()} level (the easiest level that isn't 70% right yet), and 10% from past mistakes.
+          Smart mix picks about 60% of its questions from these areas, 30% at {ins.contest === "kangaroo" ? `level ${ins.levelTarget}` : `the ${TIER_NAME[ins.tierTarget].toLowerCase()} level`} (the easiest level that isn't 70% right yet), and 10% from past mistakes.
         </p>
         {!asParent && (
           <div className="row">

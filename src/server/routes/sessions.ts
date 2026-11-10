@@ -164,6 +164,8 @@ export async function sessionRoutes(app: FastifyInstance, deps: { db: Db }): Pro
       case "focus":
         settings = { help: b.help, timerMinutes: b.timerMinutes, focus: b.focus, tiers: b.tiers, years: b.years, count: b.count, excludeRecentDays: b.excludeRecentDays };
         if (contest === "olympiad") settings = { ...settings, tiers: [], parts: b.parts as OlyPart[] };
+        // Kangaroo: levels 1–5 from how real pupils did (the older tier filter still works too).
+        else if (b.levels.length) settings = { ...settings, levels: b.levels };
         break;
       case "mistakes":
         settings = { help: b.help, timerMinutes: null, count: b.count };
