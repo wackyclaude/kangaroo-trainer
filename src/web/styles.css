@@ -2061,6 +2061,92 @@ body.calm {
   text-align: right;
 }
 
+.vs-scale {
+  position: relative;
+  height: 18px;
+  border: var(--bw) solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  margin: 6px 0;
+}
+.vs-scale.small {
+  height: 12px;
+  margin: 2px 0 0;
+}
+.vs-mark {
+  position: absolute;
+  top: -8px;
+  bottom: -8px;
+  width: 4px;
+  margin-left: -2px;
+  border-radius: 2px;
+}
+.vs-mark.main {
+  background: var(--sun-deep);
+  box-shadow: 0 0 0 1.5px var(--card);
+}
+.vs-mark.other {
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--ink-soft);
+  opacity: 0.6;
+}
+.vs-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.vs-key {
+  display: inline-block;
+  width: 4px;
+  height: 14px;
+  border-radius: 2px;
+  vertical-align: -2px;
+}
+.vs-key.main {
+  background: var(--sun-deep);
+}
+.vs-key.other {
+  width: 2px;
+  background: var(--ink-soft);
+}
+.vs-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.vs-row {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 12px;
+  border: var(--bw-thin) solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.vs-row-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: baseline;
+}
+.vs-row-head strong {
+  margin-left: auto;
+}
+.vs-line {
+  margin: 8px 0 0;
+}
 .cutoff-scale {
   position: relative;
   height: 18px;

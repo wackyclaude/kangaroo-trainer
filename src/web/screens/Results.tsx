@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import type { ResultRow, SessionResults } from "../../shared/types";
+import type { PaperBenchmark, ResultRow, SessionResults } from "../../shared/types";
+import { fmtAverage } from "../../shared/benchmarks";
 import { api, messageOf } from "../api";
 import { duration, focusColor, focusName, go, modeLabel } from "../format";
 import { Steps } from "../components/Steps";
@@ -86,6 +87,8 @@ export function Results({ sessionId }: { sessionId: number }) {
           )}
         </section>
       )}
+
+      {r.benchmark && <VsEntrants b={r.benchmark} score={r.score} />}
 
       {r.pace && (
         <section className="panel stack" aria-labelledby="pace-h">
@@ -250,5 +253,41 @@ function Detail({ row, oly }: { row: ResultRow; oly: boolean }) {
         <p className="muted">The worked solution for this question is still being written.</p>
       )}
     </div>
+  );
+}
+
+/** A Kangaroo full paper next to how real entrants scored on it that year. */
+function VsEntrants({ b, score }: { b: PaperBenchmark; score: number }) {
+  const at = (x: number) => `${(Math.max(0, Math.min(120, x)) / 120) * 100}%`;
+  const diff = Math.abs(b.diff);
+  return (
+    <section className="panel stack cutoff-panel" aria-labelledby="vs-h">
+      <h2 id="vs-h">Compared with the real contest</h2>
+      <p className="big">
+        {score} points:{" "}
+        {diff < 0.5 ? `right on the ${b.groupName} average` : `${fmtAverage(diff)} ${b.diff > 0 ? "above" : "below"} the ${b.groupName} average`} ({fmtAverage(b.average)}).
+      </p>
+      <div className="vs-scale" aria-hidden="true">
+        <span className="cutoff-fill" style={{ width: at(score) }} />
+        {b.others.map((o) => (
+          <span key={o.groupName} className="vs-mark other" style={{ left: at(o.average) }} />
+        ))}
+        <span className="vs-mark main" style={{ left: at(b.average) }} />
+      </div>
+      <ul className="vs-legend muted small-line">
+        <li>
+          <span className="vs-key main" aria-hidden="true" /> {b.groupName} average {fmtAverage(b.average)}
+        </li>
+        {b.others.map((o) => (
+          <li key={o.groupName}>
+            <span className="vs-key other" aria-hidden="true" /> {o.groupName} {fmtAverage(o.average)}
+          </li>
+        ))}
+      </ul>
+      <p className="muted small-line">
+        In {b.year}, {b.entrants.toLocaleString("en-GB")} pupils in {b.groupName} did this paper in the real contest (50 minutes, first time seeing it)
+        {b.highest !== null ? `. The top score was ${b.highest}` : ""}. A paper you've seen before, or did without the clock, will usually score higher.
+      </p>
+    </section>
   );
 }

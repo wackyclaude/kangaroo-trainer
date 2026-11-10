@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import { contestFor, contestWindow, readiness } from "../src/server/readiness/model.js";
 import { FOCUS_AREAS, type FocusArea } from "../src/shared/types.js";
 import { addStudent, cookieFrom, makeApp, setupParent } from "./helpers.js";
+import { practiceSession } from "../src/server/db/schema.js";
+import { buildResults } from "../src/server/practice/engine.js";
+import { COMPARE_GROUPS, WIZSMART_AVERAGES } from "../src/shared/benchmarks.js";
 
 const AREAS = Object.keys(FOCUS_AREAS) as FocusArea[];
 
@@ -103,5 +106,57 @@ describe("readiness API", () => {
     expect(ok.json().target).toBe(80);
     // Tom keeps the default.
     expect((await w.app.inject({ url: "/api/readiness", headers: { cookie: w.tomC } })).json().target).toBe(100);
+  });
+});
+
+describe("real entrants' averages", () => {
+  it("has sensible numbers for every year and group", () => {
+    for (const [year, groups] of Object.entries(WIZSMART_AVERAGES)) {
+      expect(Number(year)).toBeGreaterThanOrEqual(2012);
+      for (const g of COMPARE_GROUPS) {
+        const x = groups[g];
+        expect(x.average).toBeGreaterThan(20);
+        expect(x.average).toBeLessThan(100);
+        expect(x.entrants).toBeGreaterThan(100);
+        if (x.highest !== null) expect(x.highest).toBeLessThanOrEqual(120);
+      }
+    }
+  });
+
+  it("compares full papers with that year's average, in the group the parent picks", async () => {
+    const ctx = await makeApp();
+    const parent = await setupParent(ctx.app);
+    const mira = (await addStudent(ctx.app, parent, "Mira", "1234")).json().id as number;
+    const miraC = cookieFrom(await ctx.app.inject({ method: "POST", url: "/api/auth/login", payload: { profileId: mira, pin: "1234" } }));
+    const paper = (year: number, score: number, at: number, maxScore = 120) =>
+      ctx.db
+        .insert(practiceSession)
+        .values({ profileId: mira, mode: "paper", contest: "kangaroo", paperYear: year, settings: { help: "test", timerMinutes: 50 }, startedAt: at - 1000, endedAt: at, score, maxScore })
+        .returning({ id: practiceSession.id })
+        .get().id;
+    const id2026 = paper(2026, 80, 1_000);
+    paper(2024, 50, 2_000);
+    paper(2017, 90, 3_000); // no figures for 2017: left out
+    paper(2025, 15, 4_000, 15); // not a full 120-point paper: left out
+
+    const ins = (await ctx.app.inject({ url: "/api/insights", headers: { cookie: miraC } })).json();
+    expect(ins.vsAverage.groupName).toBe("groep 8");
+    expect(ins.vsAverage.papers.map((p: { year: number; diff: number }) => [p.year, p.diff])).toEqual([
+      [2026, 10.6],
+      [2024, -1.6],
+    ]);
+    expect(ins.vsAverage.recent).toMatchObject({ papers: 2, diff: 4.5 });
+
+    const ready = (await ctx.app.inject({ url: "/api/readiness", headers: { cookie: miraC } })).json();
+    expect(ready).toMatchObject({ compareGroup: "groep8", vsAverage: { groupName: "groep 8", papers: 2, diff: 4.5 } });
+
+    expect(buildResults(ctx.db, id2026)?.benchmark).toMatchObject({ year: 2026, groupName: "groep 8", average: 69.4, entrants: 11847, diff: 10.6 });
+
+    const put = await ctx.app.inject({ method: "PUT", url: `/api/profiles/${mira}/contest`, headers: { cookie: parent }, payload: { contestDate: null, targetScore: null, compareGroup: "groep7" } });
+    expect(put.statusCode).toBe(200);
+    expect(put.json()).toMatchObject({ compareGroup: "groep7", vsAverage: { groupName: "groep 7" } });
+    expect(buildResults(ctx.db, id2026)?.benchmark).toMatchObject({ groupName: "groep 7", average: 61.4 });
+    const bad = await ctx.app.inject({ method: "PUT", url: `/api/profiles/${mira}/contest`, headers: { cookie: parent }, payload: { contestDate: null, targetScore: null, compareGroup: "havo1" } });
+    expect(bad.statusCode).toBe(400);
   });
 });

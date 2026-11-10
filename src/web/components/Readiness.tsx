@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { DEFAULT_TARGET_SCORE, type Readiness } from "../../shared/types";
+import { COMPARE_GROUP_NAMES, COMPARE_GROUPS, DEFAULT_COMPARE_GROUP, fmtAverage, isCompareGroup } from "../../shared/benchmarks";
 import { api, messageOf } from "../api";
 import { Mascot } from "./Mascot";
 
@@ -98,6 +99,15 @@ export function ReadinessCard({ r, headingLevel = 2, title = "Contest ready", id
           </li>
         ))}
       </ul>
+      {r.vsAverage && (
+        <p className="vs-line small-line">
+          <strong>Vs {r.vsAverage.groupName}:</strong>{" "}
+          {Math.abs(r.vsAverage.diff) < 0.5
+            ? "right on their average"
+            : `${fmtAverage(Math.abs(r.vsAverage.diff))} points ${r.vsAverage.diff > 0 ? "above" : "below"} their average`}{" "}
+          over the last {r.vsAverage.papers === 1 ? "paper" : `${r.vsAverage.papers} papers`} ({fmtAverage(r.vsAverage.score)} vs {fmtAverage(r.vsAverage.average)}).
+        </p>
+      )}
     </section>
   );
 }
@@ -106,16 +116,20 @@ export function ReadinessCard({ r, headingLevel = 2, title = "Contest ready", id
 export function ContestSettings({ profileId, name, r, onSaved }: { profileId: number; name: string; r: Readiness; onSaved: (r: Readiness) => void }) {
   const [day, setDay] = useState(r.contest.chosen ? r.contest.date : "");
   const [target, setTarget] = useState(String(r.target));
+  const [group, setGroup] = useState(isCompareGroup(r.compareGroup) ? r.compareGroup : DEFAULT_COMPARE_GROUP);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const save = async (e: FormEvent, reset = false) => {
     e.preventDefault();
     try {
-      const body = reset ? { contestDate: null, targetScore: null } : { contestDate: day || null, targetScore: Number(target) === DEFAULT_TARGET_SCORE ? null : Number(target) };
+      const body = reset
+        ? { contestDate: null, targetScore: null, compareGroup: DEFAULT_COMPARE_GROUP }
+        : { contestDate: day || null, targetScore: Number(target) === DEFAULT_TARGET_SCORE ? null : Number(target), compareGroup: group };
       const next = await api.put<Readiness>(`/api/profiles/${profileId}/contest`, body);
       if (reset) {
         setDay("");
         setTarget(String(DEFAULT_TARGET_SCORE));
+        setGroup(DEFAULT_COMPARE_GROUP);
       }
       setMsg({ ok: true, text: `Saved for ${name}.` });
       onSaved(next);
@@ -136,6 +150,17 @@ export function ContestSettings({ profileId, name, r, onSaved }: { profileId: nu
           Target score
           <input type="number" inputMode="numeric" min={40} max={120} step={1} required value={target} onChange={(e) => setTarget(e.target.value)} />
           <span className="hint">Out of 120. This score counts as 100% on the score part.</span>
+        </label>
+        <label className="field">
+          Compare with
+          <select value={group} onChange={(e) => setGroup(e.target.value as typeof group)}>
+            {COMPARE_GROUPS.map((g) => (
+              <option key={g} value={g}>
+                {COMPARE_GROUP_NAMES[g]}
+              </option>
+            ))}
+          </select>
+          <span className="hint">Real wizSMART entrants' average. Groep 8 is about her age.</span>
         </label>
       </div>
       <div className="row">

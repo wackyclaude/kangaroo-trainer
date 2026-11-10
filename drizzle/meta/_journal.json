@@ -43,6 +43,13 @@
       "when": 1793910977319,
       "tag": "0005_accent",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1794326899029,
+      "tag": "0006_compare_group",
+      "breakpoints": true
     }
   ]
 }

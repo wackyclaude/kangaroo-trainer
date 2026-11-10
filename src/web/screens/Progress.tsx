@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { CONTESTS, OLY_LEVEL_TEXT, TIERS, type Contest, type Insights, type Rewards, type SpeedFlag } from "../../shared/types";
+import { fmtAverage } from "../../shared/benchmarks";
 import { useContest, withContest } from "../contest";
 import { ContestSwitch } from "../components/ContestSwitch";
 import { api, messageOf } from "../api";
@@ -141,6 +142,37 @@ export function Progress({ profileId, asParent }: { profileId?: number; asParent
           )}
         </div>
       </div>
+
+      {ins.vsAverage && ins.vsAverage.papers.length > 0 && (
+        <section className="panel stack" aria-labelledby="vs-avg-h">
+          <h2 id="vs-avg-h">Full papers vs real {ins.vsAverage.groupName} entrants</h2>
+          <p className="muted" style={{ margin: 0 }}>
+            Each paper next to the average {ins.vsAverage.groupName} score in the real contest that year. The line marks the average; the bar is {asParent ? `${ins.nickname}'s` : "your"} score.
+          </p>
+          <ul className="vs-list">
+            {[...ins.vsAverage.papers].reverse().map((p) => (
+              <li key={p.sessionId}>
+                <button type="button" className="vs-row" onClick={() => go(`#/results/${p.sessionId}`)}>
+                  <span className="vs-row-head">
+                    <span>{p.year} paper</span>
+                    <span className="muted">{when(p.at)}</span>
+                    <strong>
+                      {p.score} vs {fmtAverage(p.average)} · {Math.abs(p.diff) < 0.5 ? "on average" : `${fmtAverage(Math.abs(p.diff))} ${p.diff > 0 ? "above" : "below"}`}
+                    </strong>
+                  </span>
+                  <span className="vs-scale small" aria-hidden="true">
+                    <span className="cutoff-fill" style={{ width: `${(p.score / 120) * 100}%` }} />
+                    <span className="vs-mark main" style={{ left: `${(p.average / 120) * 100}%` }} />
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <p className="muted small-line" style={{ margin: 0 }}>
+            Source: W4Kangoeroe's yearly reports. The real contest is 50 minutes on a paper nobody has seen, so a redo or untimed paper usually scores higher.
+          </p>
+        </section>
+      )}
 
       {ins.olympiad && ins.olympiad.papers.length > 0 && (
         <section className="panel stack">

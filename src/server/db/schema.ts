@@ -24,6 +24,7 @@ export const profile = sqliteTable(
     theme: text("theme"),
     appearance: text("appearance"),
     accent: text("accent"),
+    compareGroup: text("compare_group"),
     createdAt: integer("created_at").notNull(),
   },
   (t) => [uniqueIndex("profile_nickname_uq").on(t.nickname)],
