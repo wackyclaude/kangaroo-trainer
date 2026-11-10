@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
-import { FOCUS_AREAS, OLY_LEVEL_NAME, OLY_LEVEL_TEXT, OLY_PARTS, TIER_TEXT, TIERS, type FocusArea, type HelpLevel, type OlyLevel, type OlyPart, type Tier } from "../../shared/types";
+import { FOCUS_AREAS, KANGAROO_LEVEL_TEXT, OLY_LEVEL_NAME, OLY_LEVEL_TEXT, OLY_LEVELS, OLY_PARTS, type FocusArea, type HelpLevel, type OlyLevel, type OlyPart } from "../../shared/types";
 import { useContest, useLevelRange, withContest } from "../contest";
 import { api, messageOf } from "../api";
 import { Chips, Segmented } from "../components/Segmented";
 import { focusColor, go, HELP_TEXT } from "../format";
-
-const TIER_LABEL: Record<Tier, string> = { "warm-up": "Warm-up", core: "Core", challenge: "Challenge" };
 
 export function StartFocus() {
   const [focus, setFocus] = useState<FocusArea[]>(() => {
@@ -13,7 +11,6 @@ export function StartFocus() {
     const keys = Object.keys(FOCUS_AREAS) as FocusArea[];
     return m?.[1] ? (m[1].split(",").filter((k) => (keys as string[]).includes(k)) as FocusArea[]) : [];
   });
-  const [tiers, setTiers] = useState<Tier[]>([]);
   const [contest] = useContest();
   const oly = contest === "olympiad";
   const range = useLevelRange();
@@ -39,8 +36,8 @@ export function StartFocus() {
         contest,
         help,
         focus,
-        tiers: oly ? [] : tiers,
-        ...(oly ? { levels: levels.map(Number), parts } : {}),
+        levels: levels.map(Number),
+        ...(oly ? { parts } : {}),
         count: Number(count),
         timerMinutes: timer === "off" ? null : Number(timer),
         delivery: onPaper ? "paper" : "app",
@@ -82,10 +79,10 @@ export function StartFocus() {
         ) : (
           <>
             <h2 style={{ marginTop: 12 }}>How hard?</h2>
-            <Chips label="Difficulty" values={tiers} onChange={setTiers} options={TIERS.map((t) => ({ value: t, label: TIER_LABEL[t] }))} />
-            <LevelGuide items={TIERS.map((t) => ({ name: TIER_LABEL[t], text: TIER_TEXT[t] }))} />
+            <Chips label="Levels" values={levels} onChange={setLevels} options={OLY_LEVELS.map((l) => ({ value: String(l), label: `Level ${l}` }))} />
+            <LevelGuide items={OLY_LEVELS.map((l) => ({ name: `Level ${l} · ${OLY_LEVEL_NAME[l]}`, text: `${KANGAROO_LEVEL_TEXT[l]} got it right.` }))} />
             <p className="muted small-line" style={{ margin: 0 }}>
-              None picked = a mix of all three.
+              From how real wizSMART pupils did on each question. None picked = all levels.
             </p>
           </>
         )}

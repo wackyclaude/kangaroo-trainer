@@ -8,6 +8,7 @@ import { BadgeMedal } from "../components/Art";
 import { Confetti } from "../components/Confetti";
 import { MascotSays } from "../components/Mascot";
 import { paceLine, RevealBlock } from "../components/Olympiad";
+import { PupilStrip } from "../components/PupilStrip";
 
 function verdict(r: SessionResults): string {
   if (r.cutoff) {
@@ -252,6 +253,7 @@ function Detail({ row, oly }: { row: ResultRow; oly: boolean }) {
       ) : (
         <p className="muted">The worked solution for this question is still being written.</p>
       )}
+      {!row.voided && <PupilStrip level={row.level} pupils={row.pupils} year={row.year} choice={row.choice} />}
     </div>
   );
 }

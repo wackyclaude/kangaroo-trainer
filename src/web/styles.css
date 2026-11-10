@@ -2060,6 +2060,22 @@ body.calm {
 .stats-strip strong {
   text-align: right;
 }
+.pupil-strip {
+  margin-top: 14px;
+}
+.feedback .pupil-strip {
+  margin-top: 8px;
+}
+.pupil-strip li {
+  grid-template-columns: 5.5em 1fr 3em;
+}
+.pupil-strip .trap .stats-bar span {
+  background: var(--berry);
+}
+.pupil-strip .blank .stats-bar span {
+  background: var(--ink-soft);
+  opacity: 0.45;
+}
 
 .vs-scale {
   position: relative;
@@ -2200,6 +2216,9 @@ body.calm {
   }
   .stats-strip li {
     grid-template-columns: 4em 1fr 2.8em;
+  }
+  .pupil-strip li {
+    grid-template-columns: 5em 1fr 2.8em;
   }
 }
 

@@ -6,6 +6,7 @@ import { count, eq } from "drizzle-orm";
 import type { Db } from "../db/client.js";
 import { appMeta, question } from "../db/schema.js";
 import { FOCUS_AREAS, TIERS } from "../../shared/types.js";
+import { kangarooDifficulty, positionMedians, PUPIL_STATS_VERSION } from "./pupils.js";
 
 const focus = z.enum(Object.keys(FOCUS_AREAS) as [keyof typeof FOCUS_AREAS, ...(keyof typeof FOCUS_AREAS)[]]);
 
@@ -45,7 +46,8 @@ export function importQuestions(db: Db, contentDir: string, now = Date.now()): I
   const file = path.join(contentDir, "questions.json");
   if (!fs.existsSync(file)) return { status: "missing", count: 0 };
   const raw = fs.readFileSync(file);
-  const digest = crypto.createHash("sha256").update(raw).digest("hex");
+  // The pupil numbers are part of the code, so a change there also re-imports.
+  const digest = crypto.createHash("sha256").update(raw).update(`pupils:${PUPIL_STATS_VERSION}`).digest("hex");
   const prev = db.select().from(appMeta).where(eq(appMeta.key, "content_sha256")).get();
   const existing = db.select({ n: count() }).from(question).where(eq(question.contest, "kangaroo")).get()?.n ?? 0;
   if (prev?.value === digest && existing > 0) return { status: "unchanged", count: existing };
@@ -55,6 +57,8 @@ export function importQuestions(db: Db, contentDir: string, now = Date.now()): I
   if (missingImages.length > 0) {
     throw new Error(`questions.json refers to ${missingImages.length} missing image(s), e.g. ${missingImages[0]?.image}`);
   }
+
+  const medians = positionMedians(bank.questions.filter((q) => q.level === "wizSMART").map((q) => ({ year: q.year, number: q.number, questionsInPaper: q.questions_in_paper, answer: q.answer })));
 
   db.transaction((tx) => {
     for (const q of bank.questions) {
@@ -74,6 +78,8 @@ export function importQuestions(db: Db, contentDir: string, now = Date.now()): I
         solutionEn: q.solution_en,
         solutionSteps: q.solution_steps_en ?? null,
         voidNote: q.void_note,
+        // Level 1–5 from how real pupils did (estimated from the position for years without a report).
+        difficulty: q.level !== "wizSMART" ? null : kangarooDifficulty({ year: q.year, number: q.number, questionsInPaper: q.questions_in_paper, answer: q.answer }, medians).level,
         updatedAt: now,
       };
       tx.insert(question).values(values).onConflictDoUpdate({ target: question.id, set: values }).run();

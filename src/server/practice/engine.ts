@@ -23,6 +23,7 @@ import {
 } from "../../shared/types.js";
 import { checkAnswer } from "../../shared/answers.js";
 import { betterThan, olympiadPapers, paceMarks } from "../content/olympiad.js";
+import { pupilStats } from "../content/pupils.js";
 import { contestOfSession, imageUrl, labelOf, profileSettings } from "./contest.js";
 
 type QuestionRow = typeof question.$inferSelect;
@@ -31,9 +32,8 @@ export const TIMER_GRACE_MS = 15_000;
 
 
 const tierRank = (t: string) => TIERS.indexOf(t as Tier);
-/** Easiest first: Kangaroo by tier, the Olympiad by level (A before B on a tie). */
-const easiestFirst = (a: QuestionRow, b: QuestionRow) =>
-  a.contest === "olympiad" ? (a.difficulty ?? 3) - (b.difficulty ?? 3) || a.number - b.number : tierRank(a.tier) - tierRank(b.tier);
+/** Easiest first: by level 1–5, then (Kangaroo) by tier, then by number (Olympiad: A before B on a tie). */
+const easiestFirst = (a: QuestionRow, b: QuestionRow) => (a.difficulty ?? 3) - (b.difficulty ?? 3) || tierRank(a.tier) - tierRank(b.tier) || a.number - b.number;
 
 /** Which rows belong to a contest's bank (Kangaroo is wizSMART only). */
 export const inContest = (contest: Contest) => (contest === "olympiad" ? eq(question.contest, "olympiad") : and(eq(question.contest, "kangaroo"), eq(question.level, "wizSMART")));
@@ -48,9 +48,9 @@ export function pickQuestions(db: Db, profileId: number, mode: PracticeMode, pap
   }
 
   const all = db.select().from(question).where(inContest(contest)).all();
-  // Olympiad: only the levels picked for this quiz (always inside the range the parent set).
+  // Only the levels picked for this quiz (Olympiad: always inside the range the parent set).
   const levels = new Set<number>(s.levels ?? []);
-  const inRange = contest === "olympiad" && levels.size ? all.filter((q) => levels.has(q.difficulty ?? 0)) : all;
+  const inRange = levels.size ? all.filter((q) => levels.has(q.difficulty ?? 0)) : all;
   // Kangaroo learn mode only picks questions with a written solution; the Olympiad also shows the official one.
   const usable = inRange.filter((q) => s.help !== "learn" || contest === "olympiad" || hasSolution(q));
   const recentCorrectIds = (days: number) =>
@@ -75,7 +75,7 @@ export function pickQuestions(db: Db, profileId: number, mode: PracticeMode, pap
     const top = Math.max(...(s.levels ?? [0]));
     const stretchPool = contest === "olympiad" && s.stretch && top < 5 ? shuffle(all.filter((q) => q.difficulty === top + 1 && !recent.has(q.id))) : [];
     const n = (s.count ?? 12) - (stretchPool.length ? 1 : 0);
-    const picked = pickSmart(usable, countedAnswers(db, profileId, undefined, contest), reviewQueue(db, profileId, now), recent, n, now);
+    const picked = pickSmart(usable, countedAnswers(db, profileId, undefined, contest), reviewQueue(db, profileId, now), recent, n, now, contest === "kangaroo");
     const out = stretchPool[0] ? [...picked, stretchPool[0]] : picked;
     return out.length ? out.sort(easiestFirst) : null;
   }
@@ -182,9 +182,15 @@ export function points(q: QuestionRow, choice: string | null): number {
   return choice === q.answer ? SCORING.correct : SCORING.wrong;
 }
 
-/** What an Olympiad question shows once it is graded: the official solution, class stats and level. */
+/**
+ * What a question shows once it is graded. Olympiad: the official solution, class stats and level.
+ * Kangaroo: the level and how real pupils answered it.
+ */
 export function revealOf(q: QuestionRow, note: string | null = null): Reveal | undefined {
-  if (q.contest !== "olympiad") return undefined;
+  if (q.contest !== "olympiad") {
+    if (q.difficulty === null) return undefined;
+    return { note, officialUrl: null, stats: null, level: q.difficulty as OlyLevel, pupils: q.level === "wizSMART" ? pupilStats(q.year, q.number, q.answer) : null };
+  }
   return { note, officialUrl: q.officialPath ? imageUrl(q.officialPath) : null, stats: q.stats ?? null, level: (q.difficulty as OlyLevel | null) ?? null };
 }
 
@@ -235,6 +241,7 @@ export function buildResults(db: Db, sessionId: number): SessionResults | null {
       officialUrl: rv?.officialUrl ?? null,
       stats: rv?.stats ?? null,
       level: rv?.level ?? null,
+      pupils: rv?.pupils ?? null,
       year: q.year,
       number: q.number,
       tier: q.tier as Tier,

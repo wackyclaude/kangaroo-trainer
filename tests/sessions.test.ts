@@ -50,7 +50,13 @@ describe("practice and learn modes", () => {
     const { app, mira } = await world();
     const id = (await app.inject({ method: "POST", url: "/api/sessions", headers: { cookie: mira }, payload: { mode: "paper", paperYear: 2026, help: "practice", timed: false } })).json().id;
     const fb = await app.inject({ method: "POST", url: `/api/sessions/${id}/answers`, headers: { cookie: mira }, payload: { position: 2, choice: "C", timeMs: 1000 } });
-    expect(fb.json()).toEqual({ saved: true, correct: false, answer: "B" });
+    // Kangaroo feedback also brings the level and how real pupils answered (2026 Q2: most fell for D).
+    expect(fb.json()).toEqual({
+      saved: true,
+      correct: false,
+      answer: "B",
+      reveal: { note: null, officialUrl: null, stats: null, level: 5, pupils: { year: 2026, right: 2, blank: 13, trap: { choice: "D", pct: 66 } } },
+    });
     const again = await app.inject({ method: "POST", url: `/api/sessions/${id}/answers`, headers: { cookie: mira }, payload: { position: 2, choice: "B", timeMs: 1000 } });
     expect(again.statusCode).toBe(409);
     expect((await app.inject({ url: `/api/sessions/${id}/hint/1`, headers: { cookie: mira } })).statusCode).toBe(403);
@@ -61,7 +67,7 @@ describe("practice and learn modes", () => {
     const id = (await app.inject({ method: "POST", url: "/api/sessions", headers: { cookie: mira }, payload: { mode: "paper", paperYear: 2026, help: "learn", timed: false } })).json().id;
     expect((await app.inject({ url: `/api/sessions/${id}/hint/1`, headers: { cookie: mira } })).json()).toEqual({ hint: "Count carefully." });
     const fb = await app.inject({ method: "POST", url: `/api/sessions/${id}/answers`, headers: { cookie: mira }, payload: { position: 1, choice: "B", timeMs: 1000, hintUsed: true } });
-    expect(fb.json()).toEqual({ saved: true, correct: true, answer: "B", steps: ["Count the shapes.", "There are two, so it is B."] });
+    expect(fb.json()).toMatchObject({ saved: true, correct: true, answer: "B", steps: ["Count the shapes.", "There are two, so it is B."], reveal: { level: 1, pupils: { right: 97, trap: null } } });
   });
 });
 
@@ -108,6 +114,20 @@ describe("focus quiz", () => {
     const ids = (await app.inject({ url: "/api/sessions", headers: { cookie: mira } })).json();
     expect(ids).toHaveLength(3);
     expect((await start({ focus: ["CMB"] })).statusCode).toBe(404);
+  });
+});
+
+describe("focus quiz by level", () => {
+  it("only picks the levels asked for, from how real pupils did", async () => {
+    const { app, mira } = await world();
+    const start = (levels: number[]) => app.inject({ method: "POST", url: "/api/sessions", headers: { cookie: mira }, payload: { mode: "focus", help: "practice", levels, count: 5 } });
+    // 2026 Q1 (97% right) is level 1; Q2 and Q3 (2% and 4%) are level 5.
+    const easy = (await start([1])).json().id;
+    expect((await app.inject({ url: `/api/sessions/${easy}`, headers: { cookie: mira } })).json().questions.map((q: { id: string }) => q.id)).toEqual(["wizSMART-2026-01"]);
+    const hard = (await start([4, 5])).json().id;
+    const ids = (await app.inject({ url: `/api/sessions/${hard}`, headers: { cookie: mira } })).json().questions.map((q: { id: string }) => q.id);
+    expect(ids.sort()).toEqual(["wizSMART-2026-02", "wizSMART-2026-03"]);
+    expect((await start([3])).statusCode).toBe(404);
   });
 });
 
