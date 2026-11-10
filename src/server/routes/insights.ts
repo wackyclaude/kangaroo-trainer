@@ -4,6 +4,7 @@ import { asc, eq, inArray } from "drizzle-orm";
 import type { Db } from "../db/client.js";
 import { attempt, practiceSession, profile, question, sessionQuestion } from "../db/schema.js";
 import { CONTESTS, OLY_LEVELS, type SessionSettings } from "../../shared/types.js";
+import { COMPARE_GROUPS } from "../../shared/benchmarks.js";
 import { contestsOf, olympiadOf } from "../practice/contest.js";
 import { olympiadWindow } from "../readiness/olympiad.js";
 import { requireParent, requireUser } from "./guards.js";
@@ -119,6 +120,7 @@ export async function insightRoutes(app: FastifyInstance, deps: { db: Db }): Pro
   const ContestSettings = z.object({
     contestDate: IsoDay.nullable(),
     targetScore: z.number().int().min(40).max(120).nullable(),
+    compareGroup: z.enum(COMPARE_GROUPS).optional(),
   });
   app.put("/api/profiles/:profileId/contest", async (req, reply) => {
     if (!requireParent(req, reply)) return;
@@ -131,7 +133,10 @@ export async function insightRoutes(app: FastifyInstance, deps: { db: Db }): Pro
     }
     const target = db.select({ role: profileTable.role }).from(profileTable).where(eq(profileTable.id, p.data.profileId)).get();
     if (!target || target.role !== "student") return reply.code(404).send({ error: "not_found", message: "That student doesn't exist." });
-    db.update(profileTable).set({ contestDate: d, targetScore: body.data.targetScore }).where(eq(profileTable.id, p.data.profileId)).run();
+    db.update(profileTable)
+      .set({ contestDate: d, targetScore: body.data.targetScore, ...(body.data.compareGroup ? { compareGroup: body.data.compareGroup } : {}) })
+      .where(eq(profileTable.id, p.data.profileId))
+      .run();
     return buildReadiness(db, p.data.profileId);
   });
 

@@ -1,7 +1,8 @@
 import { and, asc, eq, gt, sql } from "drizzle-orm";
 import type { Db } from "../db/client.js";
-import { attempt, practiceSession, question, sessionQuestion } from "../db/schema.js";
-import { countedAnswers, reviewQueue } from "../insights/store.js";
+import { attempt, practiceSession, profile, question, sessionQuestion } from "../db/schema.js";
+import { compareGroupOf, countedAnswers, reviewQueue } from "../insights/store.js";
+import { COMPARE_GROUP_NAMES, COMPARE_GROUPS, DEFAULT_COMPARE_GROUP, groupYear } from "../../shared/benchmarks.js";
 import { pickMistakes, pickSmart, shuffle } from "../insights/pick.js";
 import {
   SCORING,
@@ -12,6 +13,7 @@ import {
   type OlyLevel,
   type OlyPart,
   type PaceMarks,
+  type PaperBenchmark,
   type PracticeMode,
   type ResultRow,
   type Reveal,
@@ -274,11 +276,28 @@ export function buildResults(db: Db, sessionId: number): SessionResults | null {
   const score = s.score ?? 0;
   let cutoff: CutoffResult | null = null;
   let pace: PaceMarks | null = null;
+  let benchmark: PaperBenchmark | null = null;
   if (contest === "olympiad" && s.mode === "paper" && s.paperYear !== null) {
     const f = olympiadPapers(db).facts.get(s.paperYear);
     if (f && f.cutoff !== null) {
       const shift = profileSettings(db, s.profileId)?.olympiad.targetShift ?? 0;
       cutoff = { year: s.paperYear, cutoff: f.cutoff, diff: score - f.cutoff, betterThan: betterThan(f.scores, score), target: f.cutoff + shift };
+    }
+  } else if (contest === "kangaroo" && s.mode === "paper" && s.maxScore === 120) {
+    const who = db.select({ compareGroup: profile.compareGroup }).from(profile).where(eq(profile.id, s.profileId)).get();
+    const group = who ? compareGroupOf(who) : DEFAULT_COMPARE_GROUP;
+    const g = groupYear(s.paperYear, group);
+    if (g) {
+      benchmark = {
+        year: s.paperYear!,
+        group,
+        groupName: COMPARE_GROUP_NAMES[group],
+        entrants: g.entrants,
+        average: g.average,
+        highest: g.highest,
+        diff: Math.round((score - g.average) * 10) / 10,
+        others: COMPARE_GROUPS.filter((x) => x !== group).map((x) => ({ groupName: COMPARE_GROUP_NAMES[x], average: groupYear(s.paperYear, x)!.average })),
+      };
     }
   } else if (contest === "olympiad" && rows.length >= 6) {
     pace = paceMarks(
@@ -292,6 +311,7 @@ export function buildResults(db: Db, sessionId: number): SessionResults | null {
     contest,
     cutoff,
     pace,
+    benchmark,
     mode: s.mode,
     paperYear: s.paperYear,
     help: settings.help,

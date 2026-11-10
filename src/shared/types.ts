@@ -318,6 +318,8 @@ export interface SessionResults {
   cutoff?: CutoffResult | null;
   /** Olympiad short quiz (6 or more questions): klas-1 average and cutoff pace. */
   pace?: PaceMarks | null;
+  /** Kangaroo full paper: how real entrants in the chosen group scored that year. */
+  benchmark?: PaperBenchmark | null;
   /** Stars and badges from this quiz (only on the results screen, for students). */
   rewards?: SessionRewards | null;
 }
@@ -406,6 +408,30 @@ export interface Insights {
   contest: Contest;
   /** Olympiad only. */
   olympiad?: OlympiadInsights;
+  /** Kangaroo only: full papers against the real entrants' average that year. */
+  vsAverage?: VsAverage | null;
+}
+
+/** Her full Kangaroo papers next to how real wizSMART entrants in the chosen group scored on them. */
+export interface VsAverage {
+  group: string;
+  groupName: string;
+  papers: { sessionId: number; year: number; score: number; average: number; entrants: number; diff: number; at: number }[];
+  /** Over the last 3 such papers (null without any). */
+  recent: { papers: number; diff: number; score: number; average: number } | null;
+}
+
+/** On a Kangaroo full-paper result: how real entrants did on this paper. */
+export interface PaperBenchmark {
+  year: number;
+  group: string;
+  groupName: string;
+  entrants: number;
+  average: number;
+  highest: number | null;
+  diff: number;
+  /** The other groups' averages, for the scale. */
+  others: { groupName: string; average: number }[];
 }
 
 export interface OlympiadInsights {
@@ -553,4 +579,7 @@ export interface Readiness {
   tip: string;
   /** Olympiad: ready for a wider level range (shown in the parent corner). */
   suggestWiden?: OlympiadInsights["suggestWiden"];
+  /** Kangaroo: who she is compared with, and how her last papers did against them. */
+  compareGroup?: string;
+  vsAverage?: NonNullable<VsAverage["recent"]> & { groupName: string };
 }

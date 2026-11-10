@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import type { Db } from "../db/client.js";
 import { profile, question } from "../db/schema.js";
 import { DEFAULT_TARGET_SCORE, FOCUS_AREAS, type Contest, type FocusArea, type Readiness } from "../../shared/types.js";
-import { buildInsights, countedAnswers, finishedPapers, olympiadInsights } from "../insights/store.js";
+import { buildInsights, compareGroupOf, countedAnswers, finishedPapers, olympiadInsights } from "../insights/store.js";
 import { dayKey } from "../rewards/model.js";
 import { HOME_TIME_ZONE } from "../rewards/store.js";
 import { contestFor, readiness } from "./model.js";
@@ -42,5 +42,13 @@ export function buildReadiness(db: Db, profileId: number, now = Date.now(), cont
     distinctQuestions: distinct,
     target,
   });
-  return { kind: "kangaroo", contest: contestFor(today, p.contestDate), target, ...r };
+  const vs = ins.vsAverage;
+  return {
+    kind: "kangaroo",
+    contest: contestFor(today, p.contestDate),
+    target,
+    ...r,
+    compareGroup: compareGroupOf(p),
+    ...(vs?.recent ? { vsAverage: { ...vs.recent, groupName: vs.groupName } } : {}),
+  };
 }

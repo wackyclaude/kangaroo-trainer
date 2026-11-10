@@ -2,6 +2,7 @@
 import { and, asc, eq, isNotNull, lte, sql } from "drizzle-orm";
 import type { Db } from "../db/client.js";
 import { attempt, masterySnapshot, practiceSession, profile, question, reviewItem } from "../db/schema.js";
+import { COMPARE_GROUP_NAMES, DEFAULT_COMPARE_GROUP, groupYear, isCompareGroup, type CompareGroup } from "../../shared/benchmarks.js";
 import {
   MASTERED_BOX,
   OLY_LEVELS,
@@ -10,6 +11,7 @@ import {
   type Contest,
   type FocusArea,
   type Insights,
+  type VsAverage,
   type Level,
   type OlyLevel,
   type OlympiadInsights,
@@ -205,7 +207,28 @@ export function buildInsights(db: Db, profileId: number, now = Date.now(), conte
     totals: { answers: answers.length, sessions, papers: papers.length },
     tierTarget: tierTarget(answers),
     contest,
-    ...(contest === "olympiad" ? { olympiad: olympiadInsights(db, profileId, answers) } : {}),
+    ...(contest === "olympiad" ? { olympiad: olympiadInsights(db, profileId, answers) } : { vsAverage: vsAverage(db, profileId, compareGroupOf(who)) }),
+  };
+}
+
+export const compareGroupOf = (p: { compareGroup: string | null }): CompareGroup => (isCompareGroup(p.compareGroup) ? p.compareGroup : DEFAULT_COMPARE_GROUP);
+
+/** Full Kangaroo papers (out of 120) next to that year's real average for the chosen group. */
+export function vsAverage(db: Db, profileId: number, group: CompareGroup): VsAverage {
+  const papers = finishedPapers(db, profileId, "kangaroo")
+    .filter((p) => p.maxScore === 120 && groupYear(p.year, group) !== null)
+    .sort((a, b) => a.endedAt - b.endedAt)
+    .map((p) => {
+      const g = groupYear(p.year, group)!;
+      return { sessionId: p.id, year: p.year!, score: p.score, average: g.average, entrants: g.entrants, diff: Math.round((p.score - g.average) * 10) / 10, at: p.endedAt };
+    });
+  const last = papers.slice(-3);
+  const mean = (xs: number[]) => Math.round((xs.reduce((s, x) => s + x, 0) / xs.length) * 10) / 10;
+  return {
+    group,
+    groupName: COMPARE_GROUP_NAMES[group],
+    papers,
+    recent: last.length ? { papers: last.length, diff: mean(last.map((p) => p.diff)), score: mean(last.map((p) => p.score)), average: mean(last.map((p) => p.average)) } : null,
   };
 }
 
