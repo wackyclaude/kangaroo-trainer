@@ -6,6 +6,7 @@ import { AvatarPicker } from "../components/AvatarPicker";
 import { go, modeLabel, when } from "../format";
 import { Explorer } from "./Explorer";
 import { BenchmarksPanel, ExportPanel, PrintPanel } from "./ParentPanels";
+import { FeedbackInbox } from "../components/FeedbackInbox";
 import { ContestSettings, ReadinessCard, countdownShort } from "../components/Readiness";
 
 interface AdminProfile {
@@ -82,6 +83,8 @@ export function ParentHome({ me }: { me: Me }) {
         <h1>Parent corner</h1>
         <p className="muted">Hi {me.nickname}. See how everyone is doing, print papers, and manage students.</p>
       </div>
+
+      <FeedbackInbox />
 
       <section className="panel stack">
         <h2>

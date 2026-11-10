@@ -9,6 +9,7 @@ import { Confetti } from "../components/Confetti";
 import { MascotSays } from "../components/Mascot";
 import { paceLine, RevealBlock } from "../components/Olympiad";
 import { PupilStrip } from "../components/PupilStrip";
+import { QuestionFeedback } from "../components/Feedback";
 
 function verdict(r: SessionResults): string {
   if (r.cutoff) {
@@ -190,7 +191,7 @@ export function Results({ sessionId }: { sessionId: number }) {
                 </span>
                 <span className="r-time">{onPaper ? "" : duration(row.timeMs)}</span>
               </button>
-              {open === row.position && <Detail row={row} oly={oly} />}
+              {open === row.position && <Detail row={row} oly={oly} sessionId={sessionId} />}
             </li>
           ))}
         </ol>
@@ -219,7 +220,7 @@ function rowClass(r: ResultRow) {
   return r.choice === null ? "skip" : "bad";
 }
 
-function Detail({ row, oly }: { row: ResultRow; oly: boolean }) {
+function Detail({ row, oly, sessionId }: { row: ResultRow; oly: boolean; sessionId: number }) {
   if (oly) {
     return (
       <div className="result-detail panel">
@@ -229,6 +230,7 @@ function Detail({ row, oly }: { row: ResultRow; oly: boolean }) {
           {row.hintUsed ? " · you used a hint" : ""}
         </p>
         <RevealBlock reveal={{ note: row.note, officialUrl: row.officialUrl, stats: row.stats, level: row.level }} steps={row.steps} label={`${row.year} ${row.label}`} year={row.year} />
+        <QuestionFeedback questionId={row.id} sessionId={sessionId} />
       </div>
     );
   }
@@ -254,6 +256,7 @@ function Detail({ row, oly }: { row: ResultRow; oly: boolean }) {
         <p className="muted">The worked solution for this question is still being written.</p>
       )}
       {!row.voided && <PupilStrip level={row.level} pupils={row.pupils} year={row.year} choice={row.choice} />}
+      <QuestionFeedback questionId={row.id} sessionId={sessionId} />
     </div>
   );
 }

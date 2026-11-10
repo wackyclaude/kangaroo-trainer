@@ -163,6 +163,26 @@ export const contestPaper = sqliteTable(
   (t) => [primaryKey({ columns: [t.contest, t.year] })],
 );
 
+// Feedback a student sends to the parent, about one question or the app in general, and the parent's reply.
+export const feedback = sqliteTable(
+  "feedback",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    profileId: integer("profile_id").notNull().references(() => profile.id, { onDelete: "cascade" }),
+    questionId: text("question_id").references(() => question.id),
+    sessionId: integer("session_id").references(() => practiceSession.id, { onDelete: "set null" }),
+    kind: text("kind").notNull(),
+    message: text("message").notNull().default(""),
+    createdAt: integer("created_at").notNull(),
+    reply: text("reply"),
+    repliedAt: integer("replied_at"),
+    // When the student opened the reply; null = not seen yet.
+    replySeenAt: integer("reply_seen_at"),
+    doneAt: integer("done_at"),
+  },
+  (t) => [index("feedback_profile_idx").on(t.profileId, t.createdAt), index("feedback_open_idx").on(t.doneAt, t.createdAt)],
+);
+
 export const appMeta = sqliteTable("app_meta", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),

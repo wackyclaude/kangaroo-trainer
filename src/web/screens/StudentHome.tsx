@@ -39,9 +39,11 @@ export function StudentHome({ me }: { me: Me }) {
   const [browse, setBrowse] = useState(false);
   const [rewards, setRewards] = useState<Rewards | null>(null);
   const [ready, setReady] = useState<Readiness | null>(null);
+  const [replies, setReplies] = useState(0);
 
   useEffect(() => {
     api.get<Open | null>("/api/sessions-open").then(setOpen, () => undefined);
+    api.get<{ unseenReplies: number }>("/api/feedback/summary").then((x) => setReplies(x.unseenReplies), () => undefined);
     api.get<Rewards>("/api/rewards").then(setRewards, () => undefined);
   }, []);
   useEffect(() => {
@@ -80,6 +82,12 @@ export function StudentHome({ me }: { me: Me }) {
         <button type="button" className="panel tile carry-on" onClick={() => go(`#/quiz/${carryOn.id}`)}>
           <span className="big">Carry on where you stopped</span>
           <span className="muted">{modeLabel({ mode: carryOn.mode, paperYear: carryOn.paperYear, contest: carryOn.contest })} is still open.</span>
+        </button>
+      )}
+      {replies > 0 && (
+        <button type="button" className="panel tile carry-on" onClick={() => go("#/feedback")}>
+          <span className="big">💬 Your parent replied</span>
+          <span className="muted">{replies === 1 ? "There's a reply" : `There are ${replies} replies`} to your feedback.</span>
         </button>
       )}
       {waitingPapers.map((w) => (
@@ -189,6 +197,12 @@ export function StudentHome({ me }: { me: Me }) {
       )}
 
       <LookPicker />
+
+      <div>
+        <button type="button" className="btn" onClick={() => go("#/feedback")}>
+          💬 Feedback for my parent
+        </button>
+      </div>
 
       <section>
         {browse ? (
