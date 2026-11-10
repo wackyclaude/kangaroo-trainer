@@ -12,6 +12,7 @@ import { profileRoutes } from "./routes/profiles.js";
 import { questionRoutes } from "./routes/questions.js";
 import { sessionRoutes } from "./routes/sessions.js";
 import { insightRoutes } from "./routes/insights.js";
+import { feedbackRoutes } from "./routes/feedback.js";
 import "./routes/guards.js";
 
 export interface AppOptions {
@@ -92,6 +93,7 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
   await questionRoutes(app, { db: opts.db, contentDir: opts.contentDir });
   await sessionRoutes(app, { db: opts.db });
   await insightRoutes(app, { db: opts.db });
+  await feedbackRoutes(app, { db: opts.db });
 
   // The web app (built by Vite). Any unknown non-API path gets index.html.
   const hasWeb = fs.existsSync(path.join(opts.webDir, "index.html"));

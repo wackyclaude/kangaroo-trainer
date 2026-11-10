@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { CHOICES, type AnswerFeedback, type SavedAnswer, type SessionState } from "../../shared/types";
 import { api, ApiFailure, messageOf } from "../api";
 import { ScratchPad } from "../components/ScratchPad";
@@ -7,6 +7,8 @@ import { MascotSays } from "../components/Mascot";
 import { clock, focusColor, focusName, go, modeLabel } from "../format";
 import { MathKeypad, RevealBlock } from "../components/Olympiad";
 import { PupilStrip } from "../components/PupilStrip";
+import { FeedbackForm } from "../components/Feedback";
+import { MeContext } from "../contest";
 
 type Local = Omit<SavedAnswer, "position">;
 
@@ -16,6 +18,8 @@ export function Runner({ sessionId }: { sessionId: number }) {
   const [pos, setPos] = useState(1);
   const [answers, setAnswers] = useState<Map<number, Local>>(new Map());
   const [flags, setFlags] = useState<Set<number>>(new Set());
+  const isStudent = useContext(MeContext)?.role === "student";
+  const [feedbackFor, setFeedbackFor] = useState<number | null>(null);
   const [hints, setHints] = useState<Map<number, string>>(new Map());
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -271,6 +275,11 @@ export function Runner({ sessionId }: { sessionId: number }) {
           })}>
             {flags.has(pos) ? "★ Flagged" : "☆ Flag"}
           </button>
+          {isStudent && (
+            <button type="button" className={`icon-btn${feedbackFor === pos ? " on" : ""}`} aria-expanded={feedbackFor === pos} onClick={() => setFeedbackFor((p) => (p === pos ? null : pos))}>
+              💬 Feedback
+            </button>
+          )}
           <button type="button" className={`icon-btn${scratch ? " on" : ""}`} aria-pressed={scratch} onClick={() => setScratch((v) => !v)}>
             ✏️ Scratch pad
           </button>
@@ -280,6 +289,9 @@ export function Runner({ sessionId }: { sessionId: number }) {
             </button>
           )}
         </div>
+        {feedbackFor === pos && (
+          <FeedbackForm key={current.id} questionId={current.id} sessionId={s.id} onCancel={() => setFeedbackFor(null)} />
+        )}
         <div className={`q-figure${scratch ? " scratching" : ""}`}>
           <img key={current.id} className="q-image" src={current.imageUrl} alt={current.text} onLoad={() => !locked && startClock(current.position)} draggable={false} />
           {scratch && <ScratchPad clearKey={scratchKey} />}

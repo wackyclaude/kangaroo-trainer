@@ -616,3 +616,39 @@ export interface Readiness {
   compareGroup?: string;
   vsAverage?: NonNullable<VsAverage["recent"]> & { groupName: string };
 }
+
+// ---------- feedback from students ----------
+
+/** What a student can tell the parent: the first three are about one question. */
+export const FEEDBACK_KINDS = ["wrong-answer", "unclear", "explanation", "too-hard", "idea", "problem", "like", "other"] as const;
+export type FeedbackKind = (typeof FEEDBACK_KINDS)[number];
+export const QUESTION_FEEDBACK: FeedbackKind[] = ["wrong-answer", "unclear", "explanation", "too-hard", "other"];
+export const APP_FEEDBACK: FeedbackKind[] = ["idea", "problem", "like", "other"];
+export const FEEDBACK_LABEL: Record<FeedbackKind, string> = {
+  "wrong-answer": "I think the answer is wrong",
+  unclear: "The question or picture is unclear",
+  explanation: "The explanation didn't help",
+  "too-hard": "Too hard for me right now",
+  idea: "An idea",
+  problem: "Something isn't working",
+  like: "Something I like",
+  other: "Something else",
+};
+export const FEEDBACK_MAX_CHARS = 500;
+export const FEEDBACK_PER_DAY = 30;
+
+export interface FeedbackItem {
+  id: number;
+  profileId: number;
+  nickname: string;
+  avatar: string;
+  kind: FeedbackKind;
+  message: string;
+  createdAt: number;
+  /** The question it is about, or null for feedback about the app. */
+  question: { id: string; contest: Contest; year: number; label: string; imageUrl: string; text: string; /** Parent only. */ answer?: string } | null;
+  reply: string | null;
+  repliedAt: number | null;
+  replySeenAt: number | null;
+  doneAt: number | null;
+}

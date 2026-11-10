@@ -13,6 +13,7 @@ import { Runner } from "./screens/Runner";
 import { Results } from "./screens/Results";
 import { Progress } from "./screens/Progress";
 import { Badges } from "./screens/Badges";
+import { FeedbackPage } from "./screens/FeedbackPage";
 import { StartQuick } from "./screens/StartQuick";
 import { Print } from "./screens/Print";
 import { AnswerSheet } from "./screens/AnswerSheet";
@@ -112,6 +113,7 @@ export function App() {
       else if (insights && view.me.role === "parent") body = <Progress key={insights[1]} profileId={Number(insights[1])} asParent />;
       else if (hash === "#/progress" && view.me.role === "student") body = <Progress />;
       else if (hash === "#/badges" && view.me.role === "student") body = <Badges />;
+      else if (hash === "#/feedback" && view.me.role === "student") body = <FeedbackPage />;
       else if (hash === "#/mistakes") body = <StartQuick key="m" mode="mistakes" />;
       else if (hash === "#/smart") body = <StartQuick key="s" mode="smart" />;
       else if (hash === "#/paper") body = <StartPaper />;
