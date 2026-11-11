@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ACCENT_NAMES, ACCENTS, SKIN_NAMES, SKINS, type Accent, type Appearance, type Skin } from "../../shared/types";
+import { ACCENT_NAMES, ACCENTS, DARK_ONLY_SKINS, SKIN_NAMES, SKINS, type Accent, type Appearance, type Skin } from "../../shared/types";
 import { api, messageOf } from "../api";
 import { useLook } from "../skin";
 import { Segmented } from "./Segmented";
@@ -8,6 +8,9 @@ const LINE: Record<Skin, string> = {
   classic: "Squared paper, stickers and Roo the kangaroo.",
   space: "Twinkling stars, glowing panels and Nova the alien astronaut.",
   modern: "Sleek and dark, in your own colour. No cartoons.",
+  calm: "Big, clear and quiet. Lots of white space, one thing at a time.",
+  stickers: "Bold colourful tiles and chunky outlines. No mascot.",
+  arcade: "Retro game style: deep purple, neon colours, pixel labels. Always dark.",
 };
 
 /** The student picks her own theme. It is saved to her profile, so every device shows it. */
@@ -51,7 +54,7 @@ export function LookPicker() {
       </div>
       <div className="look-grid" role="radiogroup" aria-label="Theme">
         {SKINS.map((t) => (
-          <button key={t} type="button" role="radio" aria-checked={look.theme === t} className="look-card" onClick={() => save(t, look.theme === "modern" || t === "modern" ? "auto" : look.appearance)}>
+          <button key={t} type="button" role="radio" aria-checked={look.theme === t} className="look-card" onClick={() => save(t, look.theme === "modern" || t === "modern" || DARK_ONLY_SKINS.includes(t) ? "auto" : look.appearance)}>
             <span className={`look-swatch ${t}`} aria-hidden="true">
               <span className="sw-a" />
               <span className="sw-b" />
@@ -61,10 +64,12 @@ export function LookPicker() {
           </button>
         ))}
       </div>
-      <div className="setting">
-        <span className="setting-name">Light or dark</span>
-        <Segmented label="Light or dark" value={mode} onChange={(a) => save(look.theme, a)} options={modes} />
-      </div>
+      {!DARK_ONLY_SKINS.includes(look.theme) && (
+        <div className="setting">
+          <span className="setting-name">Light or dark</span>
+          <Segmented label="Light or dark" value={mode} onChange={(a) => save(look.theme, a)} options={modes} />
+        </div>
+      )}
       {look.theme === "modern" && (
         <div className="setting">
           <span className="setting-name">My colour</span>

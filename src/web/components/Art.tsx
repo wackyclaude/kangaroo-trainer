@@ -136,7 +136,7 @@ export function TileIcon({ kind, size = 56 }: { kind: TileArt; size?: number }) 
 export function BadgeMedal({ id, earned, size = 64 }: { id: BadgeId; earned: boolean; size?: number }) {
   const skin = useSkin();
   if (skin === "space") return <MissionPatch id={id} earned={earned} size={size} />;
-  if (skin === "modern") return <LineBadge id={id} earned={earned} size={size} />;
+  if (skin === "modern" || skin === "calm" || skin === "arcade") return <LineBadge id={id} earned={earned} size={size} />;
   const fill = earned ? MEDAL_FILL[id] ?? SUN : "var(--paper)";
   return (
     <svg viewBox="0 0 64 64" width={size} height={size} aria-hidden="true" focusable="false" className={earned ? "medal" : "medal locked"} style={earned ? ({ "--ink": "#1F2A56" } as React.CSSProperties) : undefined}>

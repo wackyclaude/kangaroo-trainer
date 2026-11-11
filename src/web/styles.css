@@ -2562,7 +2562,7 @@ body.calm {
   overflow: hidden;
 }
 .look-swatch.classic {
-  background: #fafbf7 linear-gradient(#dce6f2 1px, transparent 1px) 0 0 / 14px 14px, linear-gradient(90deg, #dce6f2 1px, transparent 1px) 0 0 / 14px 14px;
+  background: linear-gradient(#dce6f2 1px, transparent 1px) 0 0 / 14px 14px, linear-gradient(90deg, #dce6f2 1px, transparent 1px) 0 0 / 14px 14px, #fafbf7;
   border: 2px solid #1f2a56;
 }
 .look-swatch.space {
@@ -2615,7 +2615,13 @@ body.calm {
 }
 /* Modern: no speech-bubble tail (there is no mascot to point at). */
 [data-skin="modern"] .speech::before,
-[data-skin="modern"] .speech::after {
+[data-skin="modern"] .speech::after,
+[data-skin="calm"] .speech::before,
+[data-skin="calm"] .speech::after,
+[data-skin="stickers"] .speech::before,
+[data-skin="stickers"] .speech::after,
+[data-skin="arcade"] .speech::before,
+[data-skin="arcade"] .speech::after {
   display: none;
 }
 /* ================= Livelier Space and Modern (Nov 2026 feedback) ================= */
@@ -2908,6 +2914,325 @@ body.calm {
   border-radius: 50%;
   background: radial-gradient(circle at 35% 30%, #ffb4d9, #7a6cff 55%, #241a6b);
 }
+
+/* =====================================================================
+   Wide screens (MacBook, 24 inch): use the width instead of empty sides.
+   ===================================================================== */
+.q-side {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  align-content: start;
+}
+@media (min-width: 1100px) {
+  .page-quiz {
+    max-width: 1440px;
+  }
+  /* Question on the left, answers and buttons beside it: no scrolling to answer. */
+  .q-stage {
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 400px);
+    column-gap: 28px;
+    align-items: start;
+  }
+  .q-stage > .q-meta {
+    grid-column: 1 / -1;
+  }
+  .q-side {
+    position: sticky;
+    top: 16px;
+  }
+  .q-figure:not(.scratching) .q-image {
+    max-height: calc(100vh - 190px);
+    object-fit: contain;
+  }
+}
+@media (min-width: 1400px) {
+  .page {
+    max-width: 1200px;
+    padding-inline: 32px;
+  }
+  .page:has(.home-layout) {
+    max-width: 1440px;
+  }
+  .page-quiz {
+    max-width: 1520px;
+  }
+  .home-layout {
+    grid-template-columns: minmax(0, 1fr) 360px;
+    column-gap: 40px;
+  }
+  .home-main .home-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1800px) {
+  /* 24 inch: the four ways to practise side by side. */
+  .home-main .home-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* ---------- Calm: big, clear, quiet. White space, soft panels, no outlines. ---------- */
+:root[data-skin="calm"] {
+  --paper: #ffffff;
+  --grid: transparent;
+  --ink: #1f2a56;
+  --ink-soft: #55608a;
+  --card: #f2f4f9;
+  --line: transparent;
+  --btn: #ffffff;
+  --btn-line: #d5dbe8;
+  --shadow: none;
+  --lift: transparent;
+  --lift-soft: transparent;
+  --bar: #ffffff;
+  --rim: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-skin="calm"]:not([data-theme="light"]) {
+    --paper: #0f1320;
+    --ink: #eef1ff;
+    --ink-soft: #aab3d9;
+    --card: #1a2033;
+    --btn: #232a40;
+    --btn-line: #343d5c;
+    --bar: #0f1320;
+    --rim: #1a2033;
+    --berry-text: #ff8fb3;
+  }
+}
+:root[data-skin="calm"][data-theme="dark"] {
+  --paper: #0f1320;
+  --ink: #eef1ff;
+  --ink-soft: #aab3d9;
+  --card: #1a2033;
+  --btn: #232a40;
+  --btn-line: #343d5c;
+  --bar: #0f1320;
+  --rim: #1a2033;
+  --berry-text: #ff8fb3;
+}
+[data-skin="calm"] body {
+  font-size: 19px;
+}
+[data-skin="calm"] h1:not(.runner-title) {
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+}
+[data-skin="calm"] .panel {
+  border: 0;
+  border-radius: 24px;
+  box-shadow: none;
+}
+[data-skin="calm"] .btn {
+  background: var(--btn);
+  border: 2px solid var(--btn-line);
+  box-shadow: none;
+  border-radius: 16px;
+}
+[data-skin="calm"] .btn.primary {
+  background: var(--sun);
+  border-color: var(--sun);
+  box-shadow: 0 4px 0 var(--sun-deep);
+}
+[data-skin="calm"] .btn.quiet {
+  background: transparent;
+  border-color: transparent;
+}
+[data-skin="calm"] .tile .big {
+  font-size: 1.6rem;
+}
+[data-skin="calm"] .go-tile {
+  padding: 32px;
+}
+[data-skin="calm"] .home-grid > .go-tile:first-child {
+  background: var(--sun);
+  color: var(--on-sun);
+}
+[data-skin="calm"] .home-grid > .go-tile:first-child .muted {
+  color: var(--on-sun);
+}
+[data-skin="calm"] .q-image {
+  border: 2px solid var(--btn-line);
+}
+[data-skin="calm"] .brand-badge {
+  background: var(--sun);
+  border-color: var(--sun);
+}
+
+/* ---------- Stickers: bold colourful tiles, chunky outlines, no mascot ---------- */
+:root[data-skin="stickers"] {
+  --grid: #e3eaf5;
+  --shadow: 0 5px 0 var(--line);
+  --lift-soft: transparent;
+  --tile-ink: #1f2a56;
+  --tile-soft: #2b3666;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-skin="stickers"]:not([data-theme="light"]) {
+    --grid: #222a4d;
+    --line: #eef1ff;
+    --shadow: 0 5px 0 #0b0f22;
+  }
+}
+:root[data-skin="stickers"][data-theme="dark"] {
+  --grid: #222a4d;
+  --line: #eef1ff;
+  --shadow: 0 5px 0 #0b0f22;
+}
+[data-skin="stickers"] .panel {
+  border-radius: 26px;
+  box-shadow: 0 5px 0 var(--line);
+}
+[data-skin="stickers"] .btn {
+  border-radius: 18px;
+}
+[data-skin="stickers"] .tile .big {
+  font-size: 1.55rem;
+}
+/* Coloured tiles always use dark ink, in light and dark mode. */
+[data-skin="stickers"] .home-grid > .tile,
+[data-skin="stickers"] .carry-on,
+[data-skin="stickers"] .home-side .side-card {
+  --ink: var(--tile-ink);
+  --ink-soft: var(--tile-soft);
+  --line: var(--tile-ink);
+  --paper: #ffffff;
+  --card: #ffffff;
+  color: var(--ink);
+}
+[data-skin="stickers"] .carry-on { background: #ffe7a3; }
+[data-skin="stickers"] .home-grid > .tile:nth-child(6n + 1) { background: #ffc23d; }
+[data-skin="stickers"] .home-grid > .tile:nth-child(6n + 2) { background: #d4f3e3; }
+[data-skin="stickers"] .home-grid > .tile:nth-child(6n + 3) { background: #cfe0ff; }
+[data-skin="stickers"] .home-grid > .tile:nth-child(6n + 4) { background: #ffd6e4; }
+[data-skin="stickers"] .home-grid > .tile:nth-child(6n + 5) { background: #e6dcff; }
+[data-skin="stickers"] .home-grid > .tile:nth-child(6n + 6) { background: #ffe0cc; }
+[data-skin="stickers"] .home-side .side-card:nth-child(3n + 1) { background: #cfe0ff; }
+[data-skin="stickers"] .home-side .side-card:nth-child(3n + 2) { background: #e6dcff; }
+[data-skin="stickers"] .home-side .side-card:nth-child(3n + 3) { background: #ffe0cc; }
+[data-skin="stickers"] .go-tile:hover,
+[data-skin="stickers"] .tile:hover {
+  transform: translateY(-2px);
+}
+[data-skin="stickers"] .brand-badge {
+  transform: rotate(-6deg);
+}
+[data-skin="stickers"] .medal {
+  transform: rotate(-4deg);
+}
+
+/* ---------- Arcade: deep purple, neon colours, pixel labels. Always dark. ---------- */
+:root[data-skin="arcade"],
+:root[data-skin="arcade"][data-theme] {
+  color-scheme: dark;
+  --paper: #1b1036;
+  --grid: transparent;
+  --ink: #f3eeff;
+  --ink-soft: #c7b8ef;
+  --card: #2a1a52;
+  --line: #5a41a3;
+  --shadow: 0 5px 0 #120a26;
+  --lift: rgba(0, 0, 0, 0.45);
+  --lift-soft: transparent;
+  --scrim: rgba(10, 4, 26, 0.7);
+  --rim: #2a1a52;
+  --sun: #ffe14d;
+  --sun-deep: #d9b800;
+  --on-sun: #1b1036;
+  --sky: #4df0ff;
+  --grass: #3dffa0;
+  --berry: #ff3d9a;
+  --berry-text: #ff8fc4;
+  --bar: #1b1036;
+  --pixel: "Silkscreen", ui-monospace, monospace;
+  --display: "Rubik", system-ui, sans-serif;
+  --body: "Rubik", system-ui, sans-serif;
+}
+[data-skin="arcade"] body {
+  background-image: radial-gradient(#2c1d55 1.5px, transparent 1.5px);
+  background-size: 22px 22px;
+}
+[data-skin="arcade"] h1,
+[data-skin="arcade"] h2,
+[data-skin="arcade"] .tile .big {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+[data-skin="arcade"] .panel {
+  border-radius: 16px;
+  border-width: 3px;
+  box-shadow: 0 6px 0 #120a26;
+}
+[data-skin="arcade"] .btn {
+  border-radius: 12px;
+}
+/* Pixel font for short labels only; everything you read stays in Rubik. */
+[data-skin="arcade"] .brand,
+[data-skin="arcade"] .chip,
+[data-skin="arcade"] .timer,
+[data-skin="arcade"] .side-card h2,
+[data-skin="arcade"] .side-card h3,
+[data-skin="arcade"] .runner-title {
+  font-family: var(--pixel);
+  font-weight: 400;
+  letter-spacing: 0.03em;
+}
+[data-skin="arcade"] .chip {
+  color: #1b1036;
+}
+[data-skin="arcade"] .chip.outline {
+  color: var(--ink);
+}
+[data-skin="arcade"] .home-grid > .go-tile:first-child {
+  background: var(--berry);
+  border-color: var(--berry);
+  color: #1b1036;
+  box-shadow: 0 7px 0 #9c1d5c;
+}
+[data-skin="arcade"] .home-grid > .go-tile:first-child .muted {
+  color: #1b1036;
+}
+[data-skin="arcade"] .carry-on {
+  background: #3a2470;
+  border-color: var(--sun);
+}
+[data-skin="arcade"] .home-side .countdown {
+  background: #120a26;
+  border-color: var(--sky);
+}
+[data-skin="arcade"] .btn.answer.picked {
+  box-shadow: 0 0 22px rgba(255, 225, 77, 0.45), var(--shadow);
+}
+[data-skin="arcade"] .brand-badge {
+  background: var(--berry);
+  border-color: var(--berry);
+}
+[data-skin="arcade"] .brand-badge .brand-mark {
+  color: #1b1036;
+}
+[data-skin="arcade"] .confetti span {
+  border-radius: 0;
+}
+
+/* Theme picker swatches for the new themes. */
+.look-swatch.calm {
+  background: #ffffff;
+  border: 2px solid #d5dbe8;
+}
+.look-swatch.calm .sw-a { left: 12px; top: 14px; width: 70px; height: 16px; background: #1f2a56; border-radius: 4px; }
+.look-swatch.calm .sw-b { left: 12px; top: 40px; width: 96px; height: 30px; background: #ffc23d; border-radius: 12px; }
+.look-swatch.stickers {
+  background: linear-gradient(#e3eaf5 1px, transparent 1px) 0 0 / 14px 14px, linear-gradient(90deg, #e3eaf5 1px, transparent 1px) 0 0 / 14px 14px, #fafbf7;
+  border: 2px solid #1f2a56;
+}
+.look-swatch.stickers .sw-a { left: 12px; top: 12px; width: 60px; height: 58px; background: #ffc23d; border: 3px solid #1f2a56; border-radius: 12px; box-shadow: 0 3px 0 #1f2a56; }
+.look-swatch.stickers .sw-b { left: 82px; top: 12px; width: 50px; height: 58px; background: #ffd6e4; border: 3px solid #1f2a56; border-radius: 12px; box-shadow: 0 3px 0 #1f2a56; }
+.look-swatch.arcade {
+  background: radial-gradient(#3a2770 1.5px, transparent 1.5px) 0 0 / 12px 12px, #1b1036;
+  border: 2px solid #5a41a3;
+}
+.look-swatch.arcade .sw-a { left: 12px; top: 14px; width: 110px; height: 30px; background: #ff3d9a; border-radius: 6px; box-shadow: 0 4px 0 #9c1d5c; }
+.look-swatch.arcade .sw-b { left: 12px; top: 54px; width: 46px; height: 14px; background: #ffe14d; border-radius: 3px; }
 
 /* Printing always uses the plain light exercise-book colours, whatever the theme. */
 @media print {

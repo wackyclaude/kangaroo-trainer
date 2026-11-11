@@ -1,5 +1,17 @@
-import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { CHOICES, type AnswerFeedback, type SavedAnswer, type SessionState } from "../../shared/types";
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import {
+  CHOICES,
+  type AnswerFeedback,
+  type SavedAnswer,
+  type SessionState,
+} from "../../shared/types";
 import { api, ApiFailure, messageOf } from "../api";
 import { ScratchPad } from "../components/ScratchPad";
 import { Steps } from "../components/Steps";
@@ -55,7 +67,10 @@ export function Runner({ sessionId }: { sessionId: number }) {
   const stopClock = useCallback(() => {
     if (runningSince.current !== null && runningFor.current !== null) {
       const p = runningFor.current;
-      spent.current.set(p, (spent.current.get(p) ?? 0) + (Date.now() - runningSince.current));
+      spent.current.set(
+        p,
+        (spent.current.get(p) ?? 0) + (Date.now() - runningSince.current),
+      );
     }
     runningSince.current = null;
     runningFor.current = null;
@@ -77,13 +92,18 @@ export function Runner({ sessionId }: { sessionId: number }) {
     api.get<SessionState>(`/api/sessions/${sessionId}`).then(
       (state) => {
         if (state.endedAt) return go(`#/results/${sessionId}`);
-        if (state.settings.delivery === "paper") return go(`#/print/${sessionId}`);
+        if (state.settings.delivery === "paper")
+          return go(`#/print/${sessionId}`);
         skew.current = state.serverNow - Date.now();
         setS(state);
         const m = new Map<number, Local>();
         for (const a of state.answers) m.set(a.position, a);
         setAnswers(m);
-        setFlags(new Set(state.answers.filter((a) => a.flagged).map((a) => a.position)));
+        setFlags(
+          new Set(
+            state.answers.filter((a) => a.flagged).map((a) => a.position),
+          ),
+        );
         const firstOpen = state.questions.find((q) => !m.has(q.position));
         setPos(firstOpen?.position ?? 1);
       },
@@ -113,7 +133,8 @@ export function Runner({ sessionId }: { sessionId: number }) {
     return () => clearInterval(t);
   }, []);
 
-  const unsentFor = (p: number) => Math.round((spent.current.get(p) ?? 0) - (sent.current.get(p) ?? 0));
+  const unsentFor = (p: number) =>
+    Math.round((spent.current.get(p) ?? 0) - (sent.current.get(p) ?? 0));
 
   const finish = useCallback(async () => {
     if (!s || finishing.current) return;
@@ -129,7 +150,12 @@ export function Runner({ sessionId }: { sessionId: number }) {
           if (!a && extra <= 0) continue;
           if (a && extra < 500) continue;
           await api
-            .post(`/api/sessions/${s.id}/answers`, { position: q.position, choice: a?.choice ?? null, timeMs: Math.max(0, extra), flagged: flags.has(q.position) })
+            .post(`/api/sessions/${s.id}/answers`, {
+              position: q.position,
+              choice: a?.choice ?? null,
+              timeMs: Math.max(0, extra),
+              flagged: flags.has(q.position),
+            })
             .catch(() => undefined);
         }
       }
@@ -156,22 +182,38 @@ export function Runner({ sessionId }: { sessionId: number }) {
     setBusy(true);
     setError("");
     try {
-      const fb = await api.post<AnswerFeedback>(`/api/sessions/${s.id}/answers`, {
-        position: pos,
-        choice,
-        timeMs,
-        hintUsed: hints.has(pos),
-        flagged: flags.has(pos),
-      });
+      const fb = await api.post<AnswerFeedback>(
+        `/api/sessions/${s.id}/answers`,
+        {
+          position: pos,
+          choice,
+          timeMs,
+          hintUsed: hints.has(pos),
+          flagged: flags.has(pos),
+        },
+      );
       sent.current.set(pos, spent.current.get(pos) ?? 0);
-      setAnswers((m) => new Map(m).set(pos, { choice, flagged: flags.has(pos), correct: fb.correct, answer: fb.answer, steps: fb.steps, reveal: fb.reveal }));
+      setAnswers((m) =>
+        new Map(m).set(pos, {
+          choice,
+          flagged: flags.has(pos),
+          correct: fb.correct,
+          answer: fb.answer,
+          steps: fb.steps,
+          reveal: fb.reveal,
+        }),
+      );
       if (isTest) {
-        const next = s.questions.find((q) => q.position > pos && !answers.has(q.position) && q.position !== pos);
+        const next = s.questions.find(
+          (q) =>
+            q.position > pos && !answers.has(q.position) && q.position !== pos,
+        );
         if (next) setTimeout(() => setPos(next.position), 250);
         else startClock(pos);
       }
     } catch (e) {
-      if (e instanceof ApiFailure && e.body.error === "finished") return go(`#/results/${s.id}`);
+      if (e instanceof ApiFailure && e.body.error === "finished")
+        return go(`#/results/${s.id}`);
       setError(messageOf(e));
       startClock(pos);
     } finally {
@@ -182,8 +224,16 @@ export function Runner({ sessionId }: { sessionId: number }) {
   const showHint = async () => {
     if (!s) return;
     try {
-      const { hint } = await api.get<{ hint: string | null }>(`/api/sessions/${s.id}/hint/${pos}`);
-      setHints((m) => new Map(m).set(pos, hint ?? "No hint for this one yet. Read the question again slowly, and draw what it describes."));
+      const { hint } = await api.get<{ hint: string | null }>(
+        `/api/sessions/${s.id}/hint/${pos}`,
+      );
+      setHints((m) =>
+        new Map(m).set(
+          pos,
+          hint ??
+            "No hint for this one yet. Read the question again slowly, and draw what it describes.",
+        ),
+      );
     } catch (e) {
       setError(messageOf(e));
     }
@@ -207,7 +257,11 @@ export function Runner({ sessionId }: { sessionId: number }) {
   const answeredCount = answers.size;
   const last = pos === total;
   const lowTime = remaining !== null && remaining < 5 * 60_000;
-  const title = modeLabel({ mode: s.mode, paperYear: s.paperYear, contest: s.contest });
+  const title = modeLabel({
+    mode: s.mode,
+    paperYear: s.paperYear,
+    contest: s.contest,
+  });
   const oly = s.contest === "olympiad";
   const isB = current.part === "B";
   const typedNow = typed.get(pos) ?? currentAnswer?.choice ?? "";
@@ -219,16 +273,28 @@ export function Runner({ sessionId }: { sessionId: number }) {
           <h1 className="runner-title">{title}</h1>
           <span className="muted">
             {" "}
-            · Question {oly ? `${current.label} (${pos} of ${total})` : `${pos} of ${total}`}
+            · Question{" "}
+            {oly
+              ? `${current.label} (${pos} of ${total})`
+              : `${pos} of ${total}`}
           </span>
         </div>
         <div className="row">
           {remaining !== null && (
-            <span className={`timer${lowTime ? " low" : ""}`} role="timer" aria-label={`${clock(remaining)} left`}>
+            <span
+              className={`timer${lowTime ? " low" : ""}`}
+              role="timer"
+              aria-label={`${clock(remaining)} left`}
+            >
               ⏱ {clock(remaining)}
             </span>
           )}
-          <button type="button" className="btn small" onClick={() => setConfirmFinish(true)} disabled={busy}>
+          <button
+            type="button"
+            className="btn small"
+            onClick={() => setConfirmFinish(true)}
+            disabled={busy}
+          >
             {isTest ? "Hand in" : "Finish"}
           </button>
         </div>
@@ -257,168 +323,283 @@ export function Runner({ sessionId }: { sessionId: number }) {
 
       <article className="q-stage panel">
         <div className="row q-meta">
-          <span className="chip" style={{ "--c": focusColor(current.focusPrimary) } as React.CSSProperties}>
+          <span
+            className="chip"
+            style={
+              { "--c": focusColor(current.focusPrimary) } as React.CSSProperties
+            }
+          >
             {focusName(current.focusPrimary)}
           </span>
-          {s.mode !== "paper" && <span className="chip outline">{current.year}</span>}
+          {s.mode !== "paper" && (
+            <span className="chip outline">{current.year}</span>
+          )}
           {oly && (
             <span className="chip outline">
               {current.label} · {current.points} points
             </span>
           )}
           <span className="spacer" />
-          <button type="button" className={`icon-btn${flags.has(pos) ? " on" : ""}`} aria-pressed={flags.has(pos)} onClick={() => setFlags((f) => {
-            const n = new Set(f);
-            if (n.has(pos)) n.delete(pos);
-            else n.add(pos);
-            return n;
-          })}>
+          <button
+            type="button"
+            className={`icon-btn${flags.has(pos) ? " on" : ""}`}
+            aria-pressed={flags.has(pos)}
+            onClick={() =>
+              setFlags((f) => {
+                const n = new Set(f);
+                if (n.has(pos)) n.delete(pos);
+                else n.add(pos);
+                return n;
+              })
+            }
+          >
             {flags.has(pos) ? "★ Flagged" : "☆ Flag"}
           </button>
           {isStudent && (
-            <button type="button" className={`icon-btn${feedbackFor === pos ? " on" : ""}`} aria-expanded={feedbackFor === pos} onClick={() => setFeedbackFor((p) => (p === pos ? null : pos))}>
+            <button
+              type="button"
+              className={`icon-btn${feedbackFor === pos ? " on" : ""}`}
+              aria-expanded={feedbackFor === pos}
+              onClick={() => setFeedbackFor((p) => (p === pos ? null : pos))}
+            >
               💬 Feedback
             </button>
           )}
-          <button type="button" className={`icon-btn${scratch ? " on" : ""}`} aria-pressed={scratch} onClick={() => setScratch((v) => !v)}>
+          <button
+            type="button"
+            className={`icon-btn${scratch ? " on" : ""}`}
+            aria-pressed={scratch}
+            onClick={() => setScratch((v) => !v)}
+          >
             ✏️ Scratch pad
           </button>
           {scratch && (
-            <button type="button" className="icon-btn" onClick={() => setScratchKey((k) => k + 1)}>
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={() => setScratchKey((k) => k + 1)}
+            >
               Clear
             </button>
           )}
         </div>
-        {feedbackFor === pos && (
-          <FeedbackForm key={current.id} questionId={current.id} sessionId={s.id} onCancel={() => setFeedbackFor(null)} />
-        )}
         <div className={`q-figure${scratch ? " scratching" : ""}`}>
-          <img key={current.id} className="q-image" src={current.imageUrl} alt={current.text} onLoad={() => !locked && startClock(current.position)} draggable={false} />
+          <img
+            key={current.id}
+            className="q-image"
+            src={current.imageUrl}
+            alt={current.text}
+            onLoad={() => !locked && startClock(current.position)}
+            draggable={false}
+          />
           {scratch && <ScratchPad clearKey={scratchKey} />}
         </div>
 
-        {hints.get(pos) && (
-          <MascotSays mood="think" size={72} role="note">
-            <p>{hints.get(pos)}</p>
-          </MascotSays>
-        )}
-
-        {isB ? (
-          locked ? (
-            <p className="typed-answer">
-              Your answer: <strong>{currentAnswer?.choice ?? "skipped"}</strong>
-            </p>
-          ) : (
-            <MathKeypad
-              key={pos}
-              value={typedNow}
-              unit={current.unit}
-              disabled={busy}
-              onChange={(v) => setTyped((m) => new Map(m).set(pos, v))}
-              onSubmit={() => submit(typedNow.trim())}
-              submitLabel={isTest ? (currentAnswer ? "Change my answer" : "Save my answer") : "Check my answer"}
+        {/* On wide screens this column sits beside the question, so nothing needs scrolling. */}
+        <div className="q-side">
+          {feedbackFor === pos && (
+            <FeedbackForm
+              key={current.id}
+              questionId={current.id}
+              sessionId={s.id}
+              onCancel={() => setFeedbackFor(null)}
             />
-          )
-        ) : (
-          <div className="answers" role="group" aria-label="Your answer">
-            {CHOICES.map((c) => {
-              const picked = currentAnswer?.choice === c;
-              const isRight = locked && currentAnswer?.answer === c;
-              const isWrongPick = locked && picked && !currentAnswer?.correct;
-              return (
-                <button
-                  key={c}
-                  type="button"
-                  className={`btn answer${picked ? " picked" : ""}${isRight ? " right" : ""}${isWrongPick ? " wrong" : ""}`}
-                  aria-pressed={picked}
-                  disabled={busy || locked}
-                  onClick={() => submit(c)}
-                >
-                  {c}
-                </button>
-              );
-            })}
-          </div>
-        )}
-        {isB && isTest && currentAnswer?.choice && (
-          <p className="muted small-line">Saved: {currentAnswer.choice}. You can change it until you hand in.</p>
-        )}
-        <div className="row answer-extras">
-          <button type="button" className="btn quiet" disabled={busy || locked} onClick={() => submit(null)}>
-            I don't know (skip)
-          </button>
-          {help === "learn" && !locked && !hints.has(pos) && current.hasHint && (
-            <button type="button" className="btn quiet" onClick={showHint}>
-              Need a hint?
-            </button>
           )}
-        </div>
 
-        {locked && currentAnswer && (
-          <div className={`feedback ${currentAnswer.correct ? "good" : "notyet"}`} role="status">
-            <h2>
-              {currentAnswer.correct
-                ? "Yes! That's right."
-                : currentAnswer.choice === null
-                  ? `Skipped. The answer is ${currentAnswer.answer}.`
-                  : `Not quite. The answer is ${currentAnswer.answer}.`}
-            </h2>
-            {oly && currentAnswer.reveal && <RevealBlock reveal={currentAnswer.reveal} steps={currentAnswer.steps} label={`${current.year} ${current.label}`} year={current.year} />}
-            {!oly &&
-              help === "learn" &&
-              (currentAnswer.steps ? (
-                <>
-                  <p className="steps-intro">{currentAnswer.correct ? "Here's one way to work it out:" : "Let's work it out together:"}</p>
-                  <Steps key={pos} steps={currentAnswer.steps} />
-                </>
-              ) : (
-                <p className="muted">The worked solution for this one is still being written.</p>
-              ))}
-            {!oly && currentAnswer.reveal && !current.voidNote && (
-              <PupilStrip level={currentAnswer.reveal.level} pupils={currentAnswer.reveal.pupils} year={current.year} choice={currentAnswer.choice} />
+          {hints.get(pos) && (
+            <MascotSays mood="think" size={72} role="note">
+              <p>{hints.get(pos)}</p>
+            </MascotSays>
+          )}
+
+          {isB ? (
+            locked ? (
+              <p className="typed-answer">
+                Your answer:{" "}
+                <strong>{currentAnswer?.choice ?? "skipped"}</strong>
+              </p>
+            ) : (
+              <MathKeypad
+                key={pos}
+                value={typedNow}
+                unit={current.unit}
+                disabled={busy}
+                onChange={(v) => setTyped((m) => new Map(m).set(pos, v))}
+                onSubmit={() => submit(typedNow.trim())}
+                submitLabel={
+                  isTest
+                    ? currentAnswer
+                      ? "Change my answer"
+                      : "Save my answer"
+                    : "Check my answer"
+                }
+              />
+            )
+          ) : (
+            <div className="answers" role="group" aria-label="Your answer">
+              {CHOICES.map((c) => {
+                const picked = currentAnswer?.choice === c;
+                const isRight = locked && currentAnswer?.answer === c;
+                const isWrongPick = locked && picked && !currentAnswer?.correct;
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    className={`btn answer${picked ? " picked" : ""}${isRight ? " right" : ""}${isWrongPick ? " wrong" : ""}`}
+                    aria-pressed={picked}
+                    disabled={busy || locked}
+                    onClick={() => submit(c)}
+                  >
+                    {c}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {isB && isTest && currentAnswer?.choice && (
+            <p className="muted small-line">
+              Saved: {currentAnswer.choice}. You can change it until you hand
+              in.
+            </p>
+          )}
+          <div className="row answer-extras">
+            <button
+              type="button"
+              className="btn quiet"
+              disabled={busy || locked}
+              onClick={() => submit(null)}
+            >
+              I don't know (skip)
+            </button>
+            {help === "learn" &&
+              !locked &&
+              !hints.has(pos) &&
+              current.hasHint && (
+                <button type="button" className="btn quiet" onClick={showHint}>
+                  Need a hint?
+                </button>
+              )}
+          </div>
+
+          {locked && currentAnswer && (
+            <div
+              className={`feedback ${currentAnswer.correct ? "good" : "notyet"}`}
+              role="status"
+            >
+              <h2>
+                {currentAnswer.correct
+                  ? "Yes! That's right."
+                  : currentAnswer.choice === null
+                    ? `Skipped. The answer is ${currentAnswer.answer}.`
+                    : `Not quite. The answer is ${currentAnswer.answer}.`}
+              </h2>
+              {oly && currentAnswer.reveal && (
+                <RevealBlock
+                  reveal={currentAnswer.reveal}
+                  steps={currentAnswer.steps}
+                  label={`${current.year} ${current.label}`}
+                  year={current.year}
+                />
+              )}
+              {!oly &&
+                help === "learn" &&
+                (currentAnswer.steps ? (
+                  <>
+                    <p className="steps-intro">
+                      {currentAnswer.correct
+                        ? "Here's one way to work it out:"
+                        : "Let's work it out together:"}
+                    </p>
+                    <Steps key={pos} steps={currentAnswer.steps} />
+                  </>
+                ) : (
+                  <p className="muted">
+                    The worked solution for this one is still being written.
+                  </p>
+                ))}
+              {!oly && currentAnswer.reveal && !current.voidNote && (
+                <PupilStrip
+                  level={currentAnswer.reveal.level}
+                  pupils={currentAnswer.reveal.pupils}
+                  year={current.year}
+                  choice={currentAnswer.choice}
+                />
+              )}
+            </div>
+          )}
+
+          {error && (
+            <div className="message" role="alert">
+              {error}
+            </div>
+          )}
+
+          <div className="row nav-row">
+            <button
+              type="button"
+              className="btn"
+              disabled={pos === 1}
+              onClick={() => setPos(pos - 1)}
+            >
+              ← Back
+            </button>
+            <span className="spacer" />
+            {last ? (
+              <button
+                type="button"
+                className="btn primary"
+                onClick={() => setConfirmFinish(true)}
+                disabled={busy}
+              >
+                {isTest ? "Hand in" : "See my results"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className={`btn${locked ? " primary" : ""}`}
+                onClick={() => setPos(pos + 1)}
+              >
+                {locked ? "Next question →" : "Next →"}
+              </button>
             )}
           </div>
-        )}
-
-        {error && (
-          <div className="message" role="alert">
-            {error}
-          </div>
-        )}
-
-        <div className="row nav-row">
-          <button type="button" className="btn" disabled={pos === 1} onClick={() => setPos(pos - 1)}>
-            ← Back
-          </button>
-          <span className="spacer" />
-          {last ? (
-            <button type="button" className="btn primary" onClick={() => setConfirmFinish(true)} disabled={busy}>
-              {isTest ? "Hand in" : "See my results"}
-            </button>
-          ) : (
-            <button type="button" className={`btn${locked ? " primary" : ""}`} onClick={() => setPos(pos + 1)}>
-              {locked ? "Next question →" : "Next →"}
-            </button>
-          )}
         </div>
       </article>
 
       {confirmFinish && (
-        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="finish-title">
+        <div
+          className="modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="finish-title"
+        >
           <div className="panel modal">
-            <h2 id="finish-title">{answeredCount < total ? `${total - answeredCount} question${total - answeredCount === 1 ? "" : "s"} still open` : "All done?"}</h2>
+            <h2 id="finish-title">
+              {answeredCount < total
+                ? `${total - answeredCount} question${total - answeredCount === 1 ? "" : "s"} still open`
+                : "All done?"}
+            </h2>
             <p>
               {answeredCount < total
                 ? oly
                   ? "Open questions score 0 points, just like in the Olympiad. Hand in now?"
-                  : "Open questions count as \"don't know\" (1 point each). Hand in now?"
+                  : 'Open questions count as "don\'t know" (1 point each). Hand in now?'
                 : "Hand in and see how you did."}
             </p>
             <div className="row">
-              <button type="button" className="btn primary" onClick={() => void finish()} disabled={busy}>
+              <button
+                type="button"
+                className="btn primary"
+                onClick={() => void finish()}
+                disabled={busy}
+              >
                 {isTest ? "Hand in" : "See my results"}
               </button>
-              <button type="button" className="btn" onClick={() => setConfirmFinish(false)}>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setConfirmFinish(false)}
+              >
                 Keep going
               </button>
             </div>

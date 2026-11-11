@@ -4,6 +4,12 @@ import "@fontsource/fredoka/500.css";
 import "@fontsource/fredoka/600.css";
 import "@fontsource/atkinson-hyperlegible/400.css";
 import "@fontsource/atkinson-hyperlegible/700.css";
+// Arcade theme: Rubik for reading, Silkscreen (pixel) for small labels only. Only downloaded when used.
+import "@fontsource/rubik/400.css";
+import "@fontsource/rubik/500.css";
+import "@fontsource/rubik/700.css";
+import "@fontsource/rubik/800.css";
+import "@fontsource/silkscreen/400.css";
 import "./styles.css";
 import { App } from "./App";
 
