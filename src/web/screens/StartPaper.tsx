@@ -61,7 +61,7 @@ export function StartPaper() {
   const chosen = papers.find((p) => p.year === year);
 
   return (
-    <div className="stack" style={{ gap: 28 }}>
+    <div className="stack" style={{ gap: 24 }}>
       <div>
         <button type="button" className="btn quiet" onClick={() => go("#/")}>
           ← Back

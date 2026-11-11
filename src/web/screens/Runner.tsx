@@ -32,6 +32,8 @@ export function Runner({ sessionId }: { sessionId: number }) {
   const [flags, setFlags] = useState<Set<number>>(new Set());
   const isStudent = useContext(MeContext)?.role === "student";
   const [feedbackFor, setFeedbackFor] = useState<number | null>(null);
+  // Practice and learn: the answer she has tapped but not checked yet, so a slip of the finger doesn't count.
+  const [picks, setPicks] = useState<Map<number, string>>(new Map());
   const [hints, setHints] = useState<Map<number, string>>(new Map());
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -265,28 +267,66 @@ export function Runner({ sessionId }: { sessionId: number }) {
   const oly = s.contest === "olympiad";
   const isB = current.part === "B";
   const typedNow = typed.get(pos) ?? currentAnswer?.choice ?? "";
+  const pick = picks.get(pos) ?? null;
+  const rightCount = [...answers.values()].filter((a) => a.correct).length;
+  // Right answers in a row, counting back from the last question answered.
+  let streak = 0;
+  for (const q of [...s.questions].reverse()) {
+    const a = answers.get(q.position);
+    if (!a) continue;
+    if (!a.correct) break;
+    streak++;
+  }
 
   return (
     <div className="runner">
       <div className="runner-bar">
-        <div>
+        <div className="runner-where">
           <h1 className="runner-title">{title}</h1>
           <span className="muted">
-            {" "}
-            · Question{" "}
             {oly
               ? `${current.label} (${pos} of ${total})`
               : `${pos} of ${total}`}
           </span>
         </div>
+        {!isTest && (
+          <div
+            className="q-track"
+            role="img"
+            aria-label={`Question ${pos} of ${total}. ${rightCount} right so far.`}
+          >
+            {s.questions.map((q) => {
+              const a = answers.get(q.position);
+              return (
+                <span
+                  key={q.position}
+                  className={
+                    a
+                      ? a.correct
+                        ? "right"
+                        : "wrong"
+                      : q.position === pos
+                        ? "now"
+                        : undefined
+                  }
+                />
+              );
+            })}
+          </div>
+        )}
         <div className="row">
+          {!isTest && streak >= 3 && (
+            <span className="streak-chip" role="status">
+              {streak} in a row
+            </span>
+          )}
           {remaining !== null && (
             <span
               className={`timer${lowTime ? " low" : ""}`}
               role="timer"
               aria-label={`${clock(remaining)} left`}
             >
-              ⏱ {clock(remaining)}
+              {clock(remaining)}
             </span>
           )}
           <button
@@ -300,9 +340,11 @@ export function Runner({ sessionId }: { sessionId: number }) {
         </div>
       </div>
 
-      <div className="progress" aria-hidden="true">
-        <span style={{ width: `${(answeredCount / total) * 100}%` }} />
-      </div>
+      {isTest && (
+        <div className="progress" aria-hidden="true">
+          <span style={{ width: `${(answeredCount / total) * 100}%` }} />
+        </div>
+      )}
 
       {isTest && (
         <nav className="q-dots" aria-label="Questions">
@@ -331,9 +373,6 @@ export function Runner({ sessionId }: { sessionId: number }) {
           >
             {focusName(current.focusPrimary)}
           </span>
-          {s.mode !== "paper" && (
-            <span className="chip outline">{current.year}</span>
-          )}
           {oly && (
             <span className="chip outline">
               {current.label} · {current.points} points
@@ -353,7 +392,10 @@ export function Runner({ sessionId }: { sessionId: number }) {
               })
             }
           >
-            {flags.has(pos) ? "★ Flagged" : "☆ Flag"}
+            <ToolIcon kind="flag" />
+            <span className="tool-label">
+              {flags.has(pos) ? "Flagged" : "Flag"}
+            </span>
           </button>
           {isStudent && (
             <button
@@ -362,7 +404,8 @@ export function Runner({ sessionId }: { sessionId: number }) {
               aria-expanded={feedbackFor === pos}
               onClick={() => setFeedbackFor((p) => (p === pos ? null : pos))}
             >
-              💬 Feedback
+              <ToolIcon kind="feedback" />
+              <span className="tool-label">Feedback</span>
             </button>
           )}
           <button
@@ -371,7 +414,8 @@ export function Runner({ sessionId }: { sessionId: number }) {
             aria-pressed={scratch}
             onClick={() => setScratch((v) => !v)}
           >
-            ✏️ Scratch pad
+            <ToolIcon kind="scratch" />
+            <span className="tool-label">Scratch pad</span>
           </button>
           {scratch && (
             <button
@@ -438,7 +482,7 @@ export function Runner({ sessionId }: { sessionId: number }) {
           ) : (
             <div className="answers" role="group" aria-label="Your answer">
               {CHOICES.map((c) => {
-                const picked = currentAnswer?.choice === c;
+                const picked = locked || isTest ? currentAnswer?.choice === c : pick === c;
                 const isRight = locked && currentAnswer?.answer === c;
                 const isWrongPick = locked && picked && !currentAnswer?.correct;
                 return (
@@ -448,7 +492,11 @@ export function Runner({ sessionId }: { sessionId: number }) {
                     className={`btn answer${picked ? " picked" : ""}${isRight ? " right" : ""}${isWrongPick ? " wrong" : ""}`}
                     aria-pressed={picked}
                     disabled={busy || locked}
-                    onClick={() => submit(c)}
+                    onClick={() =>
+                      isTest
+                        ? submit(c)
+                        : setPicks((m) => new Map(m).set(pos, c))
+                    }
                   >
                     {c}
                   </button>
@@ -469,14 +517,14 @@ export function Runner({ sessionId }: { sessionId: number }) {
               disabled={busy || locked}
               onClick={() => submit(null)}
             >
-              I don't know (skip)
+              Skip
             </button>
             {help === "learn" &&
               !locked &&
               !hints.has(pos) &&
               current.hasHint && (
                 <button type="button" className="btn quiet" onClick={showHint}>
-                  Need a hint?
+                  Hint
                 </button>
               )}
           </div>
@@ -488,10 +536,12 @@ export function Runner({ sessionId }: { sessionId: number }) {
             >
               <h2>
                 {currentAnswer.correct
-                  ? "Yes! That's right."
+                  ? streak >= 3
+                    ? `Yes! ${streak} in a row.`
+                    : "Yes! That's right."
                   : currentAnswer.choice === null
-                    ? `Skipped. The answer is ${currentAnswer.answer}.`
-                    : `Not quite. The answer is ${currentAnswer.answer}.`}
+                    ? `Skipped. It's ${currentAnswer.answer}.`
+                    : `Not quite. It's ${currentAnswer.answer}.`}
               </h2>
               {oly && currentAnswer.reveal && (
                 <RevealBlock
@@ -518,12 +568,15 @@ export function Runner({ sessionId }: { sessionId: number }) {
                   </p>
                 ))}
               {!oly && currentAnswer.reveal && !current.voidNote && (
-                <PupilStrip
-                  level={currentAnswer.reveal.level}
-                  pupils={currentAnswer.reveal.pupils}
-                  year={current.year}
-                  choice={currentAnswer.choice}
-                />
+                <details className="more">
+                  <summary>How did other pupils do?</summary>
+                  <PupilStrip
+                    level={currentAnswer.reveal.level}
+                    pupils={currentAnswer.reveal.pupils}
+                    year={current.year}
+                    choice={currentAnswer.choice}
+                  />
+                </details>
               )}
             </div>
           )}
@@ -544,11 +597,24 @@ export function Runner({ sessionId }: { sessionId: number }) {
               ← Back
             </button>
             <span className="spacer" />
-            {last ? (
+            {!isTest && !locked && !isB ? (
               <button
                 type="button"
-                className="btn primary"
-                onClick={() => setConfirmFinish(true)}
+                className="btn primary big"
+                disabled={!pick || busy}
+                onClick={() => submit(pick)}
+              >
+                Check
+              </button>
+            ) : last ? (
+              <button
+                type="button"
+                className="btn primary big"
+                onClick={() =>
+                  isTest || answeredCount < total
+                    ? setConfirmFinish(true)
+                    : void finish()
+                }
                 disabled={busy}
               >
                 {isTest ? "Hand in" : "See my results"}
@@ -556,10 +622,10 @@ export function Runner({ sessionId }: { sessionId: number }) {
             ) : (
               <button
                 type="button"
-                className={`btn${locked ? " primary" : ""}`}
+                className={`btn${locked ? " primary big" : ""}`}
                 onClick={() => setPos(pos + 1)}
               >
-                {locked ? "Next question →" : "Next →"}
+                {locked ? "Next question" : "Next →"}
               </button>
             )}
           </div>
@@ -607,5 +673,18 @@ export function Runner({ sessionId }: { sessionId: number }) {
         </div>
       )}
     </div>
+  );
+}
+
+const TOOL_PATHS = {
+  flag: "M5 21V4M5 4h11l-2 4 2 4H5",
+  feedback: "M21 12a8 8 0 0 1-11.600 7.100L4 21l1.900-5.400A8 8 0 1 1 21 12z",
+  scratch: "M4 20l4-1L19 8l-3-3L5 16z",
+} as const;
+function ToolIcon({ kind }: { kind: keyof typeof TOOL_PATHS }) {
+  return (
+    <svg className="tool-ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d={TOOL_PATHS[kind]} />
+    </svg>
   );
 }

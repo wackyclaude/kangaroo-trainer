@@ -16,7 +16,7 @@ export function StartFocus() {
   const range = useLevelRange();
   const [levels, setLevels] = useState<string[]>([]);
   const [parts, setParts] = useState<OlyPart[]>([]);
-  const [count, setCount] = useState("10");
+  const [count, setCount] = useState("8");
   const [help, setHelp] = useState<HelpLevel>("practice");
   const [timer, setTimer] = useState("off");
   const [error, setError] = useState("");
@@ -50,7 +50,7 @@ export function StartFocus() {
   };
 
   return (
-    <div className="stack" style={{ gap: 28 }}>
+    <div className="stack" style={{ gap: 24 }}>
       <div>
         <button type="button" className="btn quiet" onClick={() => go("#/")}>
           ← Back
@@ -67,9 +67,9 @@ export function StartFocus() {
         <Chips label="Focus areas" values={focus} onChange={setFocus} colorOf={focusColor} options={(Object.keys(FOCUS_AREAS) as FocusArea[]).map((f) => ({ value: f, label: FOCUS_AREAS[f] }))} />
         {oly ? (
           <>
-            <h2 style={{ marginTop: 12 }}>Which part?</h2>
+            <h2 style={{ marginTop: 16 }}>Which part?</h2>
             <Chips label="Part" values={parts} onChange={setParts} options={OLY_PARTS.map((p) => ({ value: p, label: p === "A" ? "A: multiple choice" : "B: type the answer" }))} />
-            <h2 style={{ marginTop: 12 }}>Which levels?</h2>
+            <h2 style={{ marginTop: 16 }}>Which levels?</h2>
             <Chips label="Levels" values={levels} onChange={setLevels} options={range.map((l) => ({ value: String(l), label: `Level ${l}` }))} />
             <LevelGuide items={range.map((l) => ({ name: `Level ${l} · ${OLY_LEVEL_NAME[l as OlyLevel]}`, text: `${OLY_LEVEL_TEXT[l as OlyLevel]} got it right.` }))} />
             <p className="muted small-line" style={{ margin: 0 }}>
@@ -78,7 +78,7 @@ export function StartFocus() {
           </>
         ) : (
           <>
-            <h2 style={{ marginTop: 12 }}>How hard?</h2>
+            <h2 style={{ marginTop: 16 }}>How hard?</h2>
             <Chips label="Levels" values={levels} onChange={setLevels} options={OLY_LEVELS.map((l) => ({ value: String(l), label: `Level ${l}` }))} />
             <LevelGuide items={OLY_LEVELS.map((l) => ({ name: `Level ${l} · ${OLY_LEVEL_NAME[l]}`, text: `${KANGAROO_LEVEL_TEXT[l]} got it right.` }))} />
             <p className="muted small-line" style={{ margin: 0 }}>
@@ -92,7 +92,7 @@ export function StartFocus() {
         <h2>Settings</h2>
         <div className="setting">
           <span className="setting-name">Questions</span>
-          <Segmented label="Number of questions" value={count} onChange={setCount} options={["5", "10", "15", "20"].map((n) => ({ value: n, label: n }))} />
+          <Segmented label="Number of questions" value={count} onChange={setCount} options={["5", "8", "12", "16"].map((n) => ({ value: n, label: n }))} />
         </div>
         <div className="setting">
           <span className="setting-name">Help</span>
@@ -130,13 +130,16 @@ export function StartFocus() {
 /** One line per level, under the level chips. */
 function LevelGuide({ items }: { items: { name: string; text: string }[] }) {
   return (
-    <dl className="level-guide">
-      {items.map((i) => (
-        <div key={i.name}>
-          <dt>{i.name}</dt>
-          <dd>{i.text}</dd>
-        </div>
-      ))}
-    </dl>
+    <details className="more">
+      <summary>What do the levels mean?</summary>
+      <dl className="level-guide">
+        {items.map((i) => (
+          <div key={i.name}>
+            <dt>{i.name}</dt>
+            <dd>{i.text}</dd>
+          </div>
+        ))}
+      </dl>
+    </details>
   );
 }

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Rewards } from "../../shared/types";
 import { api, messageOf } from "../api";
-import { go } from "../format";
 import { BadgeMedal } from "../components/Art";
 import { MascotSays } from "../components/Mascot";
 
@@ -19,9 +18,6 @@ export function Badges() {
   return (
     <div className="stack" style={{ gap: 24 }}>
       <div>
-        <button type="button" className="btn quiet" onClick={() => go("#/")}>
-          ← Back
-        </button>
         <h1>My badges</h1>
       </div>
       <MascotSays mood={got.length ? "cheer" : "wave"}>

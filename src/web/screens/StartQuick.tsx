@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import type { HelpLevel, Insights } from "../../shared/types";
 import { api, messageOf } from "../api";
 import { MascotSays } from "../components/Mascot";
 import { Segmented } from "../components/Segmented";
 import { focusName, go, HELP_TEXT, when } from "../format";
-import { useContest, useLevelRange, withContest } from "../contest";
+import { MeContext, useContest, useLevelRange, withContest } from "../contest";
+import { loadQuick, QUICK_COUNTS, saveQuick, startQuick } from "../quick";
 
 /** Start screen for "Fix my mistakes" and "Smart mix": the app picks the questions. */
 export function StartQuick({ mode }: { mode: "mistakes" | "smart" }) {
@@ -12,9 +13,11 @@ export function StartQuick({ mode }: { mode: "mistakes" | "smart" }) {
   const range = useLevelRange();
   const oly = contest === "olympiad";
   const [ins, setIns] = useState<Insights | null>(null);
-  const [help, setHelp] = useState<HelpLevel>(mode === "mistakes" ? "learn" : "practice");
-  const [count, setCount] = useState(mode === "mistakes" ? "10" : "12");
-  const [timer, setTimer] = useState("off");
+  const me = useContext(MeContext);
+  const saved = loadQuick(me?.id ?? 0, mode);
+  const [help, setHelp] = useState<HelpLevel>(saved.help);
+  const [count, setCount] = useState(String(saved.count));
+  const [timer, setTimer] = useState(saved.timer);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -26,8 +29,10 @@ export function StartQuick({ mode }: { mode: "mistakes" | "smart" }) {
     setBusy(true);
     setError("");
     try {
-      const body = mode === "mistakes" ? { mode, help, count: Number(count), contest } : { mode, help, count: Number(count), timerMinutes: timer === "off" ? null : Number(timer), contest };
-      const { id } = await api.post<{ id: number }>("/api/sessions", body);
+      const prefs = { count: Number(count), help, timer };
+      const id = await startQuick(mode, prefs, contest);
+      // Remembered, so Play on the home screen starts the same way next time.
+      if (me) saveQuick(me.id, mode, prefs);
       go(`#/quiz/${id}`);
     } catch (e) {
       setError(messageOf(e));
@@ -39,7 +44,7 @@ export function StartQuick({ mode }: { mode: "mistakes" | "smart" }) {
   const none = mode === "mistakes" && m && m.due + m.waiting === 0;
 
   return (
-    <div className="stack" style={{ gap: 28 }}>
+    <div className="stack" style={{ gap: 24 }}>
       <div>
         <button type="button" className="btn quiet" onClick={() => go("#/")}>
           ← Back
@@ -87,7 +92,7 @@ export function StartQuick({ mode }: { mode: "mistakes" | "smart" }) {
         <h2>Settings</h2>
         <div className="setting">
           <span className="setting-name">Questions</span>
-          <Segmented label="Number of questions" value={count} onChange={setCount} options={(mode === "mistakes" ? ["5", "10", "15"] : ["8", "12", "16"]).map((n) => ({ value: n, label: n }))} />
+          <Segmented label="Number of questions" value={count} onChange={setCount} options={QUICK_COUNTS[mode].map((n) => ({ value: String(n), label: String(n) }))} />
         </div>
         <div className="setting">
           <span className="setting-name">Help</span>
