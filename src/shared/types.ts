@@ -60,9 +60,13 @@ export interface Me {
 
 // ---------- themes (M9) ----------
 
-export const SKINS = ["classic", "space", "modern"] as const;
+export const SKINS = ["classic", "space", "modern", "calm", "stickers", "arcade"] as const;
 export type Skin = (typeof SKINS)[number];
-export const SKIN_NAMES: Record<Skin, string> = { classic: "Exercise book", space: "Space", modern: "Modern" };
+export const SKIN_NAMES: Record<Skin, string> = { classic: "Exercise book", space: "Space", modern: "Modern", calm: "Calm", stickers: "Stickers", arcade: "Arcade" };
+/** Themes that show a cartoon mascot; the others are for students who'd rather not. */
+export const MASCOT_SKINS: readonly Skin[] = ["classic", "space"];
+/** Themes that are always dark (Modern: dark unless set to light). */
+export const DARK_ONLY_SKINS: readonly Skin[] = ["arcade"];
 export const APPEARANCES = ["auto", "light", "dark"] as const;
 /** auto = follow the device (Modern: dark unless set to light). */
 export type Appearance = (typeof APPEARANCES)[number];

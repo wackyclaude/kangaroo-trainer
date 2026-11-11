@@ -1,3 +1,4 @@
+import { MASCOT_SKINS } from "../../shared/types";
 import type { ReactNode } from "react";
 import { useSkin } from "../skin";
 
@@ -45,7 +46,7 @@ interface MascotProps {
 /** The mascot of the current theme (none in Modern). */
 export function Mascot(props: MascotProps) {
   const skin = useSkin();
-  if (skin === "modern") return null;
+  if (!MASCOT_SKINS.includes(skin)) return null;
   return skin === "space" ? <Nova {...props} /> : <Roo {...props} />;
 }
 
