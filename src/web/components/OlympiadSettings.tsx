@@ -23,7 +23,7 @@ export function ContestToggles({ profileId, name, value, onSaved }: { profileId:
     }
   };
   return (
-    <div className="stack" style={{ gap: 6 }}>
+    <div className="stack" style={{ gap: 8 }}>
       <Chips label={`Contests for ${name}`} values={value} onChange={change} options={CONTESTS.map((c) => ({ value: c, label: CONTEST_NAMES[c] }))} />
       {msg && (
         <span className={`small-line ${msg.ok ? "muted" : "error-text"}`} role="status">

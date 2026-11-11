@@ -6,6 +6,7 @@ import { ContestSwitch } from "../components/ContestSwitch";
 import { api, messageOf } from "../api";
 import { AreaBars } from "../components/AreaBars";
 import { RewardStrip } from "../components/RewardStrip";
+import { Segmented } from "../components/Segmented";
 import { MascotSays } from "../components/Mascot";
 import { focusColor, focusName, go, minutes, when } from "../format";
 
@@ -20,6 +21,7 @@ export function Progress({ profileId, asParent }: { profileId?: number; asParent
   const [parentPick, setParentPick] = useState<Contest>("kangaroo");
   const contest = asParent ? parentPick : mine;
   const [widened, setWidened] = useState("");
+  const [tab, setTab] = useState<"topics" | "levels" | "papers">("topics");
 
   const load = () => api.get<Insights>(withContest(profileId ? `/api/insights/${profileId}` : "/api/insights", contest)).then(setIns, (e) => setError(messageOf(e)));
   useEffect(() => {
@@ -48,11 +50,13 @@ export function Progress({ profileId, asParent }: { profileId?: number; asParent
   const m = ins.mistakes;
 
   return (
-    <div className="stack" style={{ gap: 28 }}>
+    <div className="stack" style={{ gap: 24 }}>
       <div>
-        <button type="button" className="btn quiet" onClick={() => go("#/")}>
-          ← Back
-        </button>
+        {asParent && (
+          <button type="button" className="btn quiet" onClick={() => go("#/")}>
+            ← Back
+          </button>
+        )}
         <h1>{asParent ? `${ins.avatar} ${ins.nickname}'s progress` : "My progress"}</h1>
         {asParent ? (
           <ContestSwitch value={parentPick} onChange={setParentPick} options={[...CONTESTS]} />
@@ -143,7 +147,22 @@ export function Progress({ profileId, asParent }: { profileId?: number; asParent
         </div>
       </div>
 
-      {ins.vsAverage && ins.vsAverage.papers.length > 0 && (
+      <Segmented
+        label="What to show"
+        value={tab}
+        onChange={setTab}
+        options={[
+          { value: "topics", label: "Topics" },
+          { value: "levels", label: "Levels" },
+          { value: "papers", label: "Papers" },
+        ]}
+      />
+
+      {tab === "papers" && !ins.vsAverage?.papers.length && !ins.olympiad?.papers.length && (
+        <p className="muted">No full papers yet. Do one to see how it compares with the real contest.</p>
+      )}
+
+      {tab === "papers" && ins.vsAverage && ins.vsAverage.papers.length > 0 && (
         <section className="panel stack" aria-labelledby="vs-avg-h">
           <h2 id="vs-avg-h">Full papers vs real {ins.vsAverage.groupName} entrants</h2>
           <p className="muted" style={{ margin: 0 }}>
@@ -174,7 +193,7 @@ export function Progress({ profileId, asParent }: { profileId?: number; asParent
         </section>
       )}
 
-      {ins.olympiad && ins.olympiad.papers.length > 0 && (
+      {tab === "papers" && ins.olympiad && ins.olympiad.papers.length > 0 && (
         <section className="panel stack">
           <h2>Full papers against the cutoff</h2>
           <ul className="recent">
@@ -193,7 +212,9 @@ export function Progress({ profileId, asParent }: { profileId?: number; asParent
         </section>
       )}
 
-      {ins.contest === "kangaroo" && ins.totals.answers > 0 && (
+      {tab === "levels" && ins.contest === "kangaroo" && ins.totals.answers === 0 && <p className="muted">Nothing to show yet.</p>}
+
+      {tab === "levels" && ins.contest === "kangaroo" && ins.totals.answers > 0 && (
         <section className="panel stack">
           <h2>By level</h2>
           <p className="muted" style={{ margin: 0 }}>
@@ -220,7 +241,7 @@ export function Progress({ profileId, asParent }: { profileId?: number; asParent
         </section>
       )}
 
-      {ins.olympiad && (
+      {tab === "levels" && ins.olympiad && (
         <section className="panel stack">
           <h2>By level</h2>
           <p className="muted" style={{ margin: 0 }}>
@@ -245,6 +266,7 @@ export function Progress({ profileId, asParent }: { profileId?: number; asParent
         </section>
       )}
 
+      {tab === "topics" && (
       <section className="panel stack">
         <h2>Focus areas</h2>
         <p className="muted" style={{ margin: 0 }}>
@@ -252,7 +274,9 @@ export function Progress({ profileId, asParent }: { profileId?: number; asParent
         </p>
         <AreaBars areas={ins.areas} weak={weak} />
       </section>
+      )}
 
+      {tab === "topics" && (
       <section className="panel stack">
         <h2>Practise next</h2>
         <div className="row">
@@ -268,7 +292,7 @@ export function Progress({ profileId, asParent }: { profileId?: number; asParent
         </p>
         {!asParent && (
           <div className="row">
-            <button type="button" className="btn primary" onClick={() => go("#/smart")}>
+            <button type="button" className="btn" onClick={() => go("#/smart")}>
               Start a Smart mix
             </button>
             <button type="button" className="btn" onClick={() => go(`#/focus?f=${weak.join(",")}`)}>
@@ -277,8 +301,9 @@ export function Progress({ profileId, asParent }: { profileId?: number; asParent
           </div>
         )}
       </section>
+      )}
 
-      {!nothingYet && (
+      {tab === "levels" && !nothingYet && (
         <section className="panel stack">
           <h2>Speed</h2>
           <p className="muted" style={{ margin: 0 }}>
@@ -316,7 +341,7 @@ export function Progress({ profileId, asParent }: { profileId?: number; asParent
 
 function Flags({ title, note, items }: { title: string; note: string; items: SpeedFlag[] }) {
   return (
-    <div className="stack" style={{ gap: 6 }}>
+    <div className="stack" style={{ gap: 8 }}>
       <h3 style={{ margin: 0 }}>{title}</h3>
       {items.length === 0 ? (
         <p className="muted" style={{ margin: 0 }}>

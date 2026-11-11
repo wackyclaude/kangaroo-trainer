@@ -96,7 +96,7 @@ export function Explorer() {
       </div>
       {current && (
         <article className="q-view panel">
-          <div className="row" style={{ marginBottom: 12 }}>
+          <div className="row" style={{ marginBottom: 16 }}>
             <h3 style={{ margin: 0 }}>
               {current.year}, question {current.label}
             </h3>

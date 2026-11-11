@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import type { PaperBenchmark, ResultRow, SessionResults } from "../../shared/types";
 import { fmtAverage } from "../../shared/benchmarks";
 import { api, messageOf } from "../api";
@@ -6,7 +6,8 @@ import { duration, focusColor, focusName, go, modeLabel } from "../format";
 import { Steps } from "../components/Steps";
 import { BadgeMedal } from "../components/Art";
 import { Confetti } from "../components/Confetti";
-import { MascotSays } from "../components/Mascot";
+import { MeContext } from "../contest";
+import { loadQuick, startQuick } from "../quick";
 import { paceLine, RevealBlock } from "../components/Olympiad";
 import { PupilStrip } from "../components/PupilStrip";
 import { QuestionFeedback } from "../components/Feedback";
@@ -34,6 +35,10 @@ export function Results({ sessionId }: { sessionId: number }) {
   const [r, setR] = useState<SessionResults | null>(null);
   const [open, setOpen] = useState<number | null>(null);
   const [error, setError] = useState("");
+  const [listOpen, setListOpen] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(false);
+  const me = useContext(MeContext);
+  const student = me?.role === "student";
 
   useEffect(() => {
     api.get<SessionResults>(`/api/sessions/${sessionId}/results`).then(setR, (e) => setError(messageOf(e)));
@@ -45,26 +50,77 @@ export function Results({ sessionId }: { sessionId: number }) {
   const title = modeLabel({ mode: r.mode, paperYear: r.paperYear, contest: r.contest });
   const oly = r.contest === "olympiad";
   const onPaper = r.delivery === "paper";
-  const wentWell = r.rows.filter((x) => x.correct && !x.voided);
+  const inPoints = oly || r.mode === "paper";
+  const missed = r.rows.filter((x) => !x.correct && !x.voided).length;
+  const showList = listOpen ?? (!student || r.help === "test" || r.mode === "paper");
+  const rw = r.rewards;
+
+  const again = async (mode: "smart" | "mistakes") => {
+    setBusy(true);
+    try {
+      go(`#/quiz/${await startQuick(mode, loadQuick(me?.id ?? 0, mode), r.contest)}`);
+    } catch {
+      go(mode === "smart" ? "#/smart" : "#/mistakes");
+    }
+  };
 
   return (
-    <div className="stack" style={{ gap: 28 }}>
-      <section className="score-hero">
-        <div className="score-sticker" aria-hidden="true">
-          <span className="score-num">{r.score}</span>
-          <span className="score-max">/ {r.maxScore}</span>
+    <div className="stack page-stack">
+      <section className="result-hero">
+        {rw?.personalBest && <Confetti />}
+        <p className="eyebrow">
+          {title} · {onPaper ? "done on paper" : duration(r.totalTimeMs)}
+        </p>
+        <h1>{inPoints ? `${r.score} out of ${r.maxScore} points` : `${r.correct} out of ${r.rows.length}`}</h1>
+        <p className="lead">{verdict(r)}</p>
+        <div className="q-track big" role="img" aria-label={`${r.correct} right, ${r.wrong} wrong, ${r.blank} skipped`}>
+          {r.rows.map((row) => (
+            <span key={row.position} className={row.voided || row.correct ? "right" : row.choice === null ? "skip" : "wrong"} />
+          ))}
         </div>
-        <div>
-          <p className="muted" style={{ margin: 0 }}>
-            {title} · {r.delivery === "paper" ? "done on paper" : `${r.help} mode`}
+        {rw && (
+          <p className="muted" role="status">
+            {rw.personalBest ? `New personal best: ${rw.personalBest.score}, up from ${rw.personalBest.previous}! ` : ""}
+            {rw.stars > 0 ? `You earned ${rw.stars} star${rw.stars === 1 ? "" : "s"}.` : "Every question you try makes the next one easier."}
           </p>
-          <h1 style={{ marginBottom: 8 }}>{verdict(r)}</h1>
-          <p style={{ margin: 0 }}>
-            <strong>{r.correct}</strong> right · <strong>{r.wrong}</strong> wrong · <strong>{r.blank}</strong> skipped{onPaper ? "" : ` · ${duration(r.totalTimeMs)}`}
-          </p>
-          <p className="visually-hidden">
-            Score {r.score} out of {r.maxScore}
-          </p>
+        )}
+        {rw && rw.newBadges.length > 0 && (
+          <ul className="new-badges">
+            {rw.newBadges.map((b) => (
+              <li key={b.id}>
+                <BadgeMedal id={b.id} earned size={56} />
+                <span>
+                  <strong>New badge: {b.name}</strong>
+                  <span className="muted small-line">{b.description}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {student ? (
+          missed > 0 ? (
+            <button type="button" className="btn primary play" disabled={busy} onClick={() => void again("mistakes")}>
+              Fix my mistakes
+            </button>
+          ) : (
+            <button type="button" className="btn primary play" disabled={busy} onClick={() => void again("smart")}>
+              Play again
+            </button>
+          )
+        ) : (
+          <button type="button" className="btn primary" onClick={() => go("#/")}>
+            Back
+          </button>
+        )}
+        <div className="row hero-links">
+          <button type="button" className="btn quiet" aria-expanded={showList} onClick={() => setListOpen(!showList)}>
+            {showList ? "Hide the questions" : "See all questions"}
+          </button>
+          {student && (
+            <button type="button" className="btn quiet" onClick={() => go("#/")}>
+              Done for today
+            </button>
+          )}
         </div>
       </section>
 
@@ -103,113 +159,52 @@ export function Results({ sessionId }: { sessionId: number }) {
         </section>
       )}
 
-      {r.rewards && (
-        <section className="panel reward-panel">
-          {r.rewards.personalBest && <Confetti />}
-          <MascotSays mood={r.rewards.personalBest || r.rewards.newBadges.length ? "cheer" : r.rewards.stars ? "wave" : "calm"} size={88} role="status">
-            {r.rewards.personalBest && (
-              <p className="big">
-                New personal best: {r.rewards.personalBest.score}, up from {r.rewards.personalBest.previous}!
-              </p>
-            )}
-            <p>
-              {r.rewards.stars > 0 ? (
-                <>
-                  You earned <strong>{r.rewards.stars}</strong> star{r.rewards.stars === 1 ? "" : "s"}
-                  {r.rewards.fixed > 0 ? `, with 2 extra for each of the ${r.rewards.fixed} old mistake${r.rewards.fixed === 1 ? "" : "s"} you fixed for good` : ""}.
-                </>
-              ) : (
-                "No stars this time, but every question you try makes the next one easier."
-              )}
-            </p>
-            {r.rewards.newBadges.length > 0 && <p>{r.rewards.newBadges.length === 1 ? "And a new badge:" : `And ${r.rewards.newBadges.length} new badges:`}</p>}
-          </MascotSays>
-          {r.rewards.newBadges.length > 0 && (
-            <ul className="new-badges">
-              {r.rewards.newBadges.map((b) => (
-                <li key={b.id}>
-                  <BadgeMedal id={b.id} earned size={56} />
-                  <span>
-                    <strong>{b.name}</strong>
-                    <span className="muted small-line">{b.description}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-          <button type="button" className="btn quiet" onClick={() => go("#/badges")}>
-            See all my badges
-          </button>
-        </section>
-      )}
-
-      {wentWell.length > 0 && (
-        <p>
-          <strong>What went well:</strong> you got {wentWell.length} right, including{" "}
-          {[...new Set(wentWell.map((x) => focusName(x.focusPrimary)))].slice(0, 2).join(" and ").toLowerCase()} questions.
-        </p>
-      )}
-
-      {r.practiseNext.length > 0 && (
+      {showList && r.practiseNext.length > 0 && (
         <section className="panel stack">
           <h2>Practise next</h2>
-          <p className="muted">The areas where this {r.mode === "paper" ? "paper" : "quiz"} had the most misses. My progress shows the weak areas over all your practice.</p>
           <div className="row">
             {r.practiseNext.map((p) => (
               <span key={p.focus} className="chip" style={{ "--c": focusColor(p.focus) } as React.CSSProperties}>
-                {focusName(p.focus)} · {p.missed} of {p.of}
+                {focusName(p.focus)} · {p.missed} of {p.of} missed
               </span>
             ))}
           </div>
           <div>
-            <button type="button" className="btn primary" onClick={() => go(`#/focus?f=${r.practiseNext.map((p) => p.focus).join(",")}`)}>
+            <button type="button" className="btn" onClick={() => go(`#/focus?f=${r.practiseNext.map((p) => p.focus).join(",")}`)}>
               Make a focus quiz
             </button>
           </div>
         </section>
       )}
 
-      <section className="stack">
-        <h2>Question by question</h2>
-        <ol className="result-list">
-          {r.rows.map((row) => (
-            <li key={row.position}>
-              <button type="button" className={`result-row ${rowClass(row)}`} aria-expanded={open === row.position} onClick={() => setOpen(open === row.position ? null : row.position)}>
-                <span className="r-num">{oly ? row.label : row.position}</span>
-                <span className="r-mark" aria-hidden="true">
-                  {row.voided ? "•" : row.correct ? "✓" : row.choice === null ? "–" : "✗"}
-                </span>
-                <span className="r-main">
-                  <span className="chip" style={{ "--c": focusColor(row.focusPrimary) } as React.CSSProperties}>
-                    {focusName(row.focusPrimary)}
+      {showList && (
+        <section className="stack">
+          <h2>Question by question</h2>
+          <ol className="result-list">
+            {r.rows.map((row) => (
+              <li key={row.position}>
+                <button type="button" className={`result-row ${rowClass(row)}`} aria-expanded={open === row.position} onClick={() => setOpen(open === row.position ? null : row.position)}>
+                  <span className="r-num">{oly ? row.label : row.position}</span>
+                  <span className="r-mark" aria-hidden="true">
+                    {row.voided ? "•" : row.correct ? "✓" : row.choice === null ? "–" : "✗"}
                   </span>
-                  <span className="muted">
-                    {r.mode !== "paper" ? `${row.year} ${oly ? row.label : `Q${row.number}`} · ` : ""}
-                    {row.choice ? `You said ${row.choice}` : "Skipped"} · answer {row.answer}
-                    {oly ? ` · ${row.earned}/${row.points} pts` : ""}
+                  <span className="r-main">
+                    <span className="chip" style={{ "--c": focusColor(row.focusPrimary) } as React.CSSProperties}>
+                      {focusName(row.focusPrimary)}
+                    </span>
+                    <span className="muted">
+                      {row.choice ? `You said ${row.choice}` : "Skipped"} · answer {row.answer}
+                      {oly ? ` · ${row.earned}/${row.points} pts` : ""}
+                    </span>
                   </span>
-                </span>
-                <span className="r-time">{onPaper ? "" : duration(row.timeMs)}</span>
-              </button>
-              {open === row.position && <Detail row={row} oly={oly} sessionId={sessionId} />}
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <div className="row">
-        <button type="button" className="btn primary" onClick={() => go("#/")}>
-          Back home
-        </button>
-        {r.mode === "paper" && (
-          <button type="button" className="btn" onClick={() => go("#/paper")}>
-            Another paper
-          </button>
-        )}
-        <button type="button" className="btn" onClick={() => go("#/progress")}>
-          My progress
-        </button>
-      </div>
+                  <span className="r-time">{onPaper ? "" : duration(row.timeMs)}</span>
+                </button>
+                {open === row.position && <Detail row={row} oly={oly} sessionId={sessionId} />}
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
     </div>
   );
 }
@@ -225,7 +220,7 @@ function Detail({ row, oly, sessionId }: { row: ResultRow; oly: boolean; session
     return (
       <div className="result-detail panel">
         <img className="q-image" src={row.imageUrl} alt={`Question ${row.label}`} />
-        <p style={{ marginTop: 12 }}>
+        <p style={{ marginTop: 16 }}>
           <strong>Answer: {row.answer}</strong>
           {row.hintUsed ? " · you used a hint" : ""}
         </p>
@@ -238,7 +233,7 @@ function Detail({ row, oly, sessionId }: { row: ResultRow; oly: boolean; session
     <div className="result-detail panel">
       {row.voided && <div className="message">The organisers cancelled this question because of a mistake in the drawing, so everyone gets the points.</div>}
       <img className="q-image" src={row.imageUrl} alt={`Question ${row.number}`} />
-      <p style={{ marginTop: 12 }}>
+      <p style={{ marginTop: 16 }}>
         <strong>Answer: {row.answer}</strong>
         {row.hintUsed ? " · you used a hint" : ""}
       </p>

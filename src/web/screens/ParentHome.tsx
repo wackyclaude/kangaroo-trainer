@@ -78,7 +78,7 @@ export function ParentHome({ me }: { me: Me }) {
   };
 
   return (
-    <div className="stack" style={{ gap: 32 }}>
+    <div className="stack" style={{ gap: 40 }}>
       <div>
         <h1>Parent corner</h1>
         <p className="muted">Hi {me.nickname}. See how everyone is doing, print papers, and manage students.</p>

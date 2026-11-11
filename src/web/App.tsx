@@ -14,6 +14,7 @@ import { Results } from "./screens/Results";
 import { Progress } from "./screens/Progress";
 import { Badges } from "./screens/Badges";
 import { FeedbackPage } from "./screens/FeedbackPage";
+import { MePage } from "./screens/MePage";
 import { StartQuick } from "./screens/StartQuick";
 import { Print } from "./screens/Print";
 import { AnswerSheet } from "./screens/AnswerSheet";
@@ -114,6 +115,7 @@ export function App() {
       else if (hash === "#/progress" && view.me.role === "student") body = <Progress />;
       else if (hash === "#/badges" && view.me.role === "student") body = <Badges />;
       else if (hash === "#/feedback" && view.me.role === "student") body = <FeedbackPage />;
+      else if (hash === "#/me" && view.me.role === "student") body = <MePage me={view.me} onSignOut={() => void signOut()} />;
       else if (hash === "#/mistakes") body = <StartQuick key="m" mode="mistakes" />;
       else if (hash === "#/smart") body = <StartQuick key="s" mode="smart" />;
       else if (hash === "#/paper") body = <StartPaper />;
@@ -124,7 +126,7 @@ export function App() {
           <main className={`page${quiz ? " page-quiz" : ""}${print ? " page-print" : ""}`}>
             {!quiz && (
               <div className="no-print">
-                <TopBar me={view.me} onSignOut={() => void signOut()} />
+                <TopBar me={view.me} hash={hash} onSignOut={() => void signOut()} />
               </div>
             )}
             {body}
