@@ -4,16 +4,17 @@ import { PUPIL_SHARES, type ShareRow } from "./pupil-shares.js";
 import { BRAIN_SHARES } from "./brain-shares.js";
 
 /** Bump when PUPIL_SHARES or the level bands change, so the next start re-imports the bank. */
-export const PUPIL_STATS_VERSION = "2";
+export const PUPIL_STATS_VERSION = "3";
 
 /** A wrong answer counts as a trap when at least this share of pupils picked it. */
 export const TRAP_MIN = 15;
 
 /**
  * Questions where the report counted a different answer from the app. wizSMART 2014 Q16: the official key says D,
- * the drawing gives C. wizBRAIN 2011 Q30 and 2012 Q27: no printed answer was right, so there is no "right" share.
+ * the drawing gives C. wizBRAIN 2007 Q29: the key says C (4), but 972 = 9 × 108 also works, so the app uses D (5).
+ * wizBRAIN 2011 Q30 and 2012 Q27: no printed answer was right, so there is no "right" share.
  */
-const KEY_DIFFERS: Record<string, Set<string>> = { wizSMART: new Set(["2014-16"]), wizBRAIN: new Set(["2011-30", "2012-27"]) };
+const KEY_DIFFERS: Record<string, Set<string>> = { wizSMART: new Set(["2014-16"]), wizBRAIN: new Set(["2007-29", "2011-30", "2012-27"]) };
 const SHARES: Record<string, Record<number, ShareRow[]>> = { wizSMART: PUPIL_SHARES, wizBRAIN: BRAIN_SHARES };
 
 export function pupilStats(level: string, year: number, number: number, answer: string): PupilStats | null {
