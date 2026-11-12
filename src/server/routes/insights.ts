@@ -85,7 +85,7 @@ export async function insightRoutes(app: FastifyInstance, deps: { db: Db }): Pro
   const Level = z.union(OLY_LEVELS.map((l) => z.literal(l)) as unknown as [z.ZodLiteral<1>, z.ZodLiteral<2>, z.ZodLiteral<3>, z.ZodLiteral<4>, z.ZodLiteral<5>]);
   const OlympiadBody = z
     .object({
-      contests: z.array(z.enum(CONTESTS)).min(1).max(2).optional(),
+      contests: z.array(z.enum(CONTESTS)).min(1).max(CONTESTS.length).optional(),
       minLevel: Level.optional(),
       maxLevel: Level.optional(),
       stretch: z.boolean().optional(),

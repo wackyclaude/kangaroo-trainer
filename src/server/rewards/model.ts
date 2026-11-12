@@ -1,5 +1,5 @@
 // Stars, streaks and badges, worked out from the answer log (nothing extra is stored).
-import { BADGES, FOCUS_AREAS, type Badge, type BadgeId, type FocusArea, type Rewards, type SessionRewards, type WeekDay } from "../../shared/types.js";
+import { BADGES, CONTESTS, FOCUS_AREAS, type Badge, type Contest, type BadgeId, type FocusArea, type Rewards, type SessionRewards, type WeekDay } from "../../shared/types.js";
 import { scoreAreas, type Answer } from "../insights/model.js";
 
 export interface FinishedSession {
@@ -11,7 +11,7 @@ export interface FinishedSession {
   maxScore: number | null;
   questions: number;
   /** Missing = Kangaroo. */
-  contest?: "kangaroo" | "olympiad";
+  contest?: Contest;
   /** Olympiad full paper: that year's klas 1–3 cutoff. */
   cutoff?: number | null;
 }
@@ -84,7 +84,8 @@ export function replayRewards(answers: Answer[], sessions: FinishedSession[], no
   let fixedTotal = 0;
   let starsTotal = 0;
   const seen: Answer[] = [];
-  let bestPaper: number | null = null;
+  // Best full paper per contest (the Rewards card shows wizSMART's).
+  const bestByContest = new Map<Contest, number>();
   const personalBests = new Map<number, { score: number; previous: number }>();
   let finished = 0;
   const today = dayKey(now, timeZone);
@@ -153,14 +154,18 @@ export function replayRewards(answers: Answer[], sessions: FinishedSession[], no
         if (s.cutoff != null && s.score >= s.cutoff) bump("oly-cutoff", 1, s.endedAt, s.id);
       } else if (s.mode === "paper" && s.score !== null) {
         bump("first-paper", 1, s.endedAt, s.id);
-        bump("score-80", s.score, s.endedAt, s.id);
-        bump("score-100", s.score, s.endedAt, s.id);
-        if (bestPaper !== null && s.score > bestPaper) personalBests.set(s.id, { score: s.score, previous: bestPaper });
-        bestPaper = Math.max(bestPaper ?? s.score, s.score);
+        // The score badges count out of 120: a 150-point paper (wizBRAIN, older wizSMART) is scaled down.
+        const out120 = s.maxScore && s.maxScore !== 120 ? (s.score / s.maxScore) * 120 : s.score;
+        bump("score-80", out120, s.endedAt, s.id);
+        bump("score-100", out120, s.endedAt, s.id);
+        const c = s.contest ?? "kangaroo";
+        const prev = bestByContest.get(c);
+        if (prev !== undefined && s.score > prev) personalBests.set(s.id, { score: s.score, previous: prev });
+        bestByContest.set(c, Math.max(prev ?? s.score, s.score));
       }
       if (!earned.has("ready")) {
         // Per contest: a Kangaroo area and an Olympiad area are different skills.
-        const ready = (["kangaroo", "olympiad"] as const).some((c) => scoreAreas(seen.filter((a) => (a.contest ?? "kangaroo") === c), s.endedAt).some((x) => x.level === "competition-ready"));
+        const ready = CONTESTS.some((c) => scoreAreas(seen.filter((a) => (a.contest ?? "kangaroo") === c), s.endedAt).some((x) => x.level === "competition-ready"));
         if (ready) bump("ready", 1, s.endedAt, s.id);
       }
     }
@@ -212,7 +217,7 @@ export function replayRewards(answers: Answer[], sessions: FinishedSession[], no
       streak: { current, best, practisedToday: days.has(today) },
       week: { goal: WEEK_GOAL, practisedDays: week.filter((d) => d.practised).length, days: week },
       badges,
-      bestPaper,
+      bestPaper: bestByContest.get("kangaroo") ?? null,
     },
     bySession,
   };

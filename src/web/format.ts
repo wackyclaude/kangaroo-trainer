@@ -37,10 +37,11 @@ export function go(hash: string) {
 
 export function modeLabel(r: { mode: string; paperYear: number | null; questions?: number; delivery?: string; contest?: string }): string {
   const oly = r.contest === "olympiad";
+  const named = oly ? "Olympiad" : r.contest === "brain" ? "wizBRAIN" : "";
   const base =
-    (oly && r.mode !== "paper" ? "Olympiad · " : "") +
+    (named && r.mode !== "paper" ? `${named} · ` : "") +
     (r.mode === "paper"
-      ? `${r.paperYear} ${oly ? "Olympiad " : ""}paper`
+      ? `${r.paperYear} ${named ? `${named} ` : ""}paper`
       : r.mode === "mistakes"
         ? "Fix my mistakes"
         : r.mode === "smart"

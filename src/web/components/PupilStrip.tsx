@@ -1,7 +1,7 @@
 import { OLY_LEVEL_NAME, type OlyLevel, type PupilStats } from "../../shared/types";
 
 /**
- * Kangaroo, once a question is graded: its level 1–5 and how real wizSMART pupils answered it
+ * Kangaroo, once a question is graded: its level 1–5 and how real pupils at that level answered it
  * ("62% of pupils got this right"), with the most popular wrong answer when many fell for it.
  */
 export function PupilStrip({ level, pupils, year, choice }: { level: OlyLevel | null; pupils: PupilStats | null | undefined; year: number; choice?: string | null }) {
@@ -62,7 +62,7 @@ export function PupilStrip({ level, pupils, year, choice }: { level: OlyLevel | 
           )}
         </span>
       )}
-      <span className="muted small-line">Real wizSMART pupils in {year}.</span>
+      <span className="muted small-line">Real contest pupils in {year}.</span>
     </div>
   );
 }

@@ -2,13 +2,17 @@
 import { and, asc, eq, isNotNull, lte, sql } from "drizzle-orm";
 import type { Db } from "../db/client.js";
 import { attempt, masterySnapshot, practiceSession, profile, question, reviewItem } from "../db/schema.js";
-import { COMPARE_GROUP_NAMES, DEFAULT_COMPARE_GROUP, groupYear, isCompareGroup, type CompareGroup } from "../../shared/benchmarks.js";
+import { DEFAULT_COMPARE_GROUP, groupsFor, isCompareGroup, type CompareGroup } from "../../shared/benchmarks.js";
 import {
+  isKangaroo,
+  KANGAROO_LEVEL,
+  KANGAROO_PAPER,
   MASTERED_BOX,
   OLY_LEVELS,
   type BenchmarkProfile,
   type Benchmarks,
   type Contest,
+  type KangarooContest,
   type FocusArea,
   type Insights,
   type VsAverage,
@@ -20,7 +24,7 @@ import {
   type TrendPoint,
 } from "../../shared/types.js";
 import { olympiadPapers, paceMarks } from "../content/olympiad.js";
-import { profileSettings } from "../practice/contest.js";
+import { contestOfQuestion, inContest, profileSettings } from "../practice/contest.js";
 import { contestEstimate, FOCUS_KEYS, median, replayReviews, scoreAreas, speedStats, levelTarget, tierTarget, weakAreas, type Answer } from "./model.js";
 
 /**
@@ -33,7 +37,7 @@ export function countedAnswers(db: Db, profileId: number, upTo = Number.MAX_SAFE
     .from(attempt)
     .innerJoin(question, eq(question.id, attempt.questionId))
     .leftJoin(practiceSession, eq(practiceSession.id, attempt.sessionId))
-    .where(and(eq(attempt.profileId, profileId), lte(attempt.answeredAt, upTo), contest ? eq(question.contest, contest) : undefined))
+    .where(and(eq(attempt.profileId, profileId), lte(attempt.answeredAt, upTo), contest ? inContest(contest) : undefined))
     .orderBy(asc(attempt.id))
     .all();
   const finals = new Map<string, Answer>();
@@ -56,7 +60,7 @@ export function countedAnswers(db: Db, profileId: number, upTo = Number.MAX_SAFE
       timeMs: a.timeMs === null && !prev?.timeMs ? null : (prev?.timeMs ?? 0) + (a.timeMs ?? 0),
       answeredAt: a.answeredAt,
       sessionId: a.sessionId,
-      contest: q.contest,
+      contest: contestOfQuestion(q),
       part: q.part,
       points: q.points,
       difficulty: q.difficulty,
@@ -177,7 +181,7 @@ export function buildInsights(db: Db, profileId: number, now = Date.now(), conte
     .select({ r: reviewItem })
     .from(reviewItem)
     .innerJoin(question, eq(question.id, reviewItem.questionId))
-    .where(and(eq(reviewItem.profileId, profileId), eq(question.contest, contest)))
+    .where(and(eq(reviewItem.profileId, profileId), inContest(contest)))
     .all()
     .map((x) => x.r);
   const open = reviews.filter((r) => r.box < MASTERED_BOX);
@@ -203,7 +207,7 @@ export function buildInsights(db: Db, profileId: number, now = Date.now(), conte
       nextDueAt: waiting.length ? Math.min(...waiting.map((r) => r.dueAt)) : null,
     },
     speed: speedStats(answers),
-    estimate: contest === "kangaroo" ? contestEstimate(papers) : null,
+    estimate: isKangaroo(contest) ? contestEstimate(papers, KANGAROO_PAPER[contest].max) : null,
     totals: { answers: answers.length, sessions, papers: papers.length },
     tierTarget: tierTarget(answers),
     levelTarget: levelTarget(answers),
@@ -212,26 +216,29 @@ export function buildInsights(db: Db, profileId: number, now = Date.now(), conte
       return { level, answers: at.length, right: at.filter((a) => a.correct).length };
     }),
     contest,
-    ...(contest === "olympiad" ? { olympiad: olympiadInsights(db, profileId, answers) } : { vsAverage: vsAverage(db, profileId, compareGroupOf(who)) }),
+    paperMax: isKangaroo(contest) ? KANGAROO_PAPER[contest].max : 0,
+    ...(isKangaroo(contest) ? { vsAverage: vsAverage(db, profileId, compareGroupOf(who), contest) } : { olympiad: olympiadInsights(db, profileId, answers) }),
   };
 }
 
 export const compareGroupOf = (p: { compareGroup: string | null }): CompareGroup => (isCompareGroup(p.compareGroup) ? p.compareGroup : DEFAULT_COMPARE_GROUP);
 
-/** Full Kangaroo papers (out of 120) next to that year's real average for the chosen group. */
-export function vsAverage(db: Db, profileId: number, group: CompareGroup): VsAverage {
-  const papers = finishedPapers(db, profileId, "kangaroo")
-    .filter((p) => p.maxScore === 120 && groupYear(p.year, group) !== null)
+/** Full Kangaroo papers next to that year's real average for the chosen group (wizBRAIN: havo/vwo 1). */
+export function vsAverage(db: Db, profileId: number, picked: CompareGroup, contest: KangarooContest = "kangaroo"): VsAverage {
+  const groups = groupsFor(KANGAROO_LEVEL[contest], picked);
+  const papers = finishedPapers(db, profileId, contest)
+    .filter((p) => p.maxScore === groups.max && groups.at(p.year) !== null)
     .sort((a, b) => a.endedAt - b.endedAt)
     .map((p) => {
-      const g = groupYear(p.year, group)!;
+      const g = groups.at(p.year)!;
       return { sessionId: p.id, year: p.year!, score: p.score, average: g.average, entrants: g.entrants, diff: Math.round((p.score - g.average) * 10) / 10, at: p.endedAt };
     });
   const last = papers.slice(-3);
   const mean = (xs: number[]) => Math.round((xs.reduce((s, x) => s + x, 0) / xs.length) * 10) / 10;
   return {
-    group,
-    groupName: COMPARE_GROUP_NAMES[group],
+    group: groups.group,
+    groupName: groups.groupName,
+    max: groups.max,
     papers,
     recent: last.length ? { papers: last.length, diff: mean(last.map((p) => p.diff)), score: mean(last.map((p) => p.score)), average: mean(last.map((p) => p.average)) } : null,
   };

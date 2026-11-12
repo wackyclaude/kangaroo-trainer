@@ -258,7 +258,7 @@ function Detail({ row, oly, sessionId }: { row: ResultRow; oly: boolean; session
 
 /** A Kangaroo full paper next to how real entrants scored on it that year. */
 function VsEntrants({ b, score }: { b: PaperBenchmark; score: number }) {
-  const at = (x: number) => `${(Math.max(0, Math.min(120, x)) / 120) * 100}%`;
+  const at = (x: number) => `${(Math.max(0, Math.min(b.max, x)) / b.max) * 100}%`;
   const diff = Math.abs(b.diff);
   return (
     <section className="panel stack cutoff-panel" aria-labelledby="vs-h">
@@ -285,7 +285,7 @@ function VsEntrants({ b, score }: { b: PaperBenchmark; score: number }) {
         ))}
       </ul>
       <p className="muted small-line">
-        In {b.year}, {b.entrants.toLocaleString("en-GB")} pupils in {b.groupName} did this paper in the real contest (50 minutes, first time seeing it)
+        In {b.year}, {b.entrants.toLocaleString("en-GB")} pupils in {b.groupName} did this paper in the real contest ({b.max === 150 ? 75 : 50} minutes, first time seeing it)
         {b.highest !== null ? `. The top score was ${b.highest}` : ""}. A paper you've seen before, or did without the clock, will usually score higher.
       </p>
     </section>

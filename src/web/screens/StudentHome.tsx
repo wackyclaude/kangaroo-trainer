@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import type { Insights, Me, Readiness, Rewards, SessionListItem } from "../../shared/types";
+import { isKangaroo, KANGAROO_PAPER, type Insights, type Me, type Readiness, type Rewards, type SessionListItem } from "../../shared/types";
 import { api } from "../api";
 import { focusName, go, modeLabel } from "../format";
 import { TileIcon } from "../components/Art";
 import { Mascot } from "../components/Mascot";
 import { useContest, withContest } from "../contest";
+import { ContestSwitch } from "../components/ContestSwitch";
 import { loadQuick, startQuick } from "../quick";
 
 interface Open {
@@ -17,8 +18,9 @@ interface Open {
 
 /** Home: one clear next step (Play), one line on how she's doing, and three other ways to practise. */
 export function StudentHome({ me }: { me: Me }) {
-  const [contest] = useContest();
+  const [contest, setContest, contests] = useContest();
   const oly = contest === "olympiad";
+  const size = isKangaroo(contest) ? KANGAROO_PAPER[contest] : null;
   const [open, setOpen] = useState<Open | null>(null);
   const [recent, setRecent] = useState<SessionListItem[]>([]);
   const [ins, setIns] = useState<Insights | null>(null);
@@ -64,6 +66,7 @@ export function StudentHome({ me }: { me: Me }) {
     <div className="home">
       <section className="home-hero">
         <Mascot mood={doneToday ? "cheer" : "wave"} size={88} />
+        {contests.length > 1 && <ContestSwitch compact value={contest} onChange={setContest} options={contests} />}
         <h1>{doneToday ? `Nice work today, ${me.nickname}. One more?` : `Hi ${me.nickname}. Ready for ${prefs.count}?`}</h1>
         <p className="muted">
           {areas ? `Today's mix: ${areas}.` : "Questions picked for you."} About {Math.round(prefs.count * 1.25)} minutes.
@@ -139,7 +142,7 @@ export function StudentHome({ me }: { me: Me }) {
           <TileIcon kind="paper" size={40} />
           <span>
             <strong>Full paper</strong>
-            <span className="muted">{oly ? "8 + 4 questions" : "24 questions, 50 min"}</span>
+            <span className="muted">{oly ? "8 + 4 questions" : `${size?.questions} questions, ${size?.minutes} min`}</span>
           </span>
         </button>
       </section>

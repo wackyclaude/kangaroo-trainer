@@ -11,8 +11,9 @@ import { CONTENT, makeApp, setupParent } from "./helpers.js";
 describe("question import", () => {
   it("imports once and skips an unchanged file", () => {
     const { db } = openDb(":memory:");
-    expect(importQuestions(db, CONTENT)).toEqual({ status: "imported", count: 3 });
-    expect(importQuestions(db, CONTENT)).toEqual({ status: "unchanged", count: 3 });
+    // 3 wizSMART + 30 wizBRAIN (content/brain/).
+    expect(importQuestions(db, CONTENT)).toEqual({ status: "imported", count: 33 });
+    expect(importQuestions(db, CONTENT)).toEqual({ status: "unchanged", count: 33 });
   });
 
   it("refuses a bank that points at missing pictures", () => {
@@ -20,6 +21,19 @@ describe("question import", () => {
     fs.copyFileSync(path.join(CONTENT, "questions.json"), path.join(dir, "questions.json"));
     const { db } = openDb(":memory:");
     expect(() => importQuestions(db, dir)).toThrow(/missing image/);
+  });
+
+  it("works without a wizBRAIN bank, and refuses a wrong level in it", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "kt-"));
+    fs.cpSync(path.join(CONTENT, "img"), path.join(dir, "img"), { recursive: true });
+    fs.copyFileSync(path.join(CONTENT, "questions.json"), path.join(dir, "questions.json"));
+    expect(importQuestions(openDb(":memory:").db, dir)).toEqual({ status: "imported", count: 3 });
+    fs.cpSync(path.join(CONTENT, "brain"), path.join(dir, "brain"), { recursive: true });
+    const file = path.join(dir, "brain", "questions.json");
+    const bank = JSON.parse(fs.readFileSync(file, "utf8"));
+    bank.questions[0].level = "wizSMART";
+    fs.writeFileSync(file, JSON.stringify(bank));
+    expect(() => importQuestions(openDb(":memory:").db, dir)).toThrow(/expected wizBRAIN/);
   });
 });
 

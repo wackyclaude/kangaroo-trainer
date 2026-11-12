@@ -11,7 +11,8 @@ import {
   OLY_LEVELS,
   OLY_PAPER_MINUTES,
   OLY_PARTS,
-  PAPER_MINUTES,
+  isKangaroo,
+  KANGAROO_PAPER,
   TIERS,
   type AnswerFeedback,
   type Contest,
@@ -159,7 +160,7 @@ export async function sessionRoutes(app: FastifyInstance, deps: { db: Db }): Pro
     let settings: SessionSettings;
     switch (b.mode) {
       case "paper":
-        settings = { help: b.help, timerMinutes: b.timed ? (contest === "olympiad" ? OLY_PAPER_MINUTES : PAPER_MINUTES) : null };
+        settings = { help: b.help, timerMinutes: b.timed ? (isKangaroo(contest) ? KANGAROO_PAPER[contest].minutes : OLY_PAPER_MINUTES) : null };
         break;
       case "focus":
         settings = { help: b.help, timerMinutes: b.timerMinutes, focus: b.focus, tiers: b.tiers, years: b.years, count: b.count, excludeRecentDays: b.excludeRecentDays };
@@ -174,7 +175,7 @@ export async function sessionRoutes(app: FastifyInstance, deps: { db: Db }): Pro
         settings = { help: b.help, timerMinutes: b.timerMinutes, count: b.count, excludeRecentDays: 30 };
         break;
     }
-    if (contest === "olympiad") settings = { ...settings, contest };
+    if (contest !== "kangaroo") settings = { ...settings, contest };
     // On paper there is no timer and no help: answers are typed in afterwards and scored like a test.
     if (onPaper) settings = { ...settings, help: "test", timerMinutes: null, delivery: "paper" };
 

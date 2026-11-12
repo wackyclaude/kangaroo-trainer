@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CONTESTS, KANGAROO_LEVEL_TEXT, OLY_LEVEL_TEXT, TIERS, type Contest, type Insights, type Rewards, type SpeedFlag } from "../../shared/types";
+import { CONTESTS, isKangaroo, KANGAROO_LEVEL_TEXT, KANGAROO_PAPER, OLY_LEVEL_TEXT, TIERS, type Contest, type Insights, type Rewards, type SpeedFlag } from "../../shared/types";
 import { fmtAverage } from "../../shared/benchmarks";
 import { useContest, withContest } from "../contest";
 import { ContestSwitch } from "../components/ContestSwitch";
@@ -122,7 +122,7 @@ export function Progress({ profileId, asParent }: { profileId?: number; asParent
             <>
               <span className="stat-num">
                 {ins.estimate.score}
-                <small> / 120</small>
+                <small> / {ins.paperMax}</small>
               </span>
               <span className="muted">
                 Likely {ins.estimate.low}–{ins.estimate.high}, from the last {ins.estimate.papers === 1 ? "paper" : `${ins.estimate.papers} papers`}
@@ -180,15 +180,15 @@ export function Progress({ profileId, asParent }: { profileId?: number; asParent
                     </strong>
                   </span>
                   <span className="vs-scale small" aria-hidden="true">
-                    <span className="cutoff-fill" style={{ width: `${(p.score / 120) * 100}%` }} />
-                    <span className="vs-mark main" style={{ left: `${(p.average / 120) * 100}%` }} />
+                    <span className="cutoff-fill" style={{ width: `${(p.score / ins.vsAverage!.max) * 100}%` }} />
+                    <span className="vs-mark main" style={{ left: `${(p.average / ins.vsAverage!.max) * 100}%` }} />
                   </span>
                 </button>
               </li>
             ))}
           </ul>
           <p className="muted small-line" style={{ margin: 0 }}>
-            Source: W4Kangoeroe's yearly reports. The real contest is 50 minutes on a paper nobody has seen, so a redo or untimed paper usually scores higher.
+            Source: W4Kangoeroe's yearly reports. The real contest is {isKangaroo(ins.contest) ? KANGAROO_PAPER[ins.contest].minutes : 50} minutes on a paper nobody has seen, so a redo or untimed paper usually scores higher.
           </p>
         </section>
       )}
@@ -212,9 +212,9 @@ export function Progress({ profileId, asParent }: { profileId?: number; asParent
         </section>
       )}
 
-      {tab === "levels" && ins.contest === "kangaroo" && ins.totals.answers === 0 && <p className="muted">Nothing to show yet.</p>}
+      {tab === "levels" && isKangaroo(ins.contest) && ins.totals.answers === 0 && <p className="muted">Nothing to show yet.</p>}
 
-      {tab === "levels" && ins.contest === "kangaroo" && ins.totals.answers > 0 && (
+      {tab === "levels" && isKangaroo(ins.contest) && ins.totals.answers > 0 && (
         <section className="panel stack">
           <h2>By level</h2>
           <p className="muted" style={{ margin: 0 }}>
@@ -288,7 +288,7 @@ export function Progress({ profileId, asParent }: { profileId?: number; asParent
           ))}
         </div>
         <p className="muted" style={{ margin: 0 }}>
-          Smart mix picks about 60% of its questions from these areas, 30% at {ins.contest === "kangaroo" ? `level ${ins.levelTarget}` : `the ${TIER_NAME[ins.tierTarget].toLowerCase()} level`} (the easiest level that isn't 70% right yet), and 10% from past mistakes.
+          Smart mix picks about 60% of its questions from these areas, 30% at {isKangaroo(ins.contest) ? `level ${ins.levelTarget}` : `the ${TIER_NAME[ins.tierTarget].toLowerCase()} level`} (the easiest level that isn't 70% right yet), and 10% from past mistakes.
         </p>
         {!asParent && (
           <div className="row">
@@ -308,7 +308,7 @@ export function Progress({ profileId, asParent }: { profileId?: number; asParent
           <h2>Speed</h2>
           <p className="muted" style={{ margin: 0 }}>
             Middle time per question (half the answers were quicker).{" "}
-            {ins.contest === "olympiad" ? "In Olympiad round 1 there are 10 minutes per question on average; B-problems take longer." : "In the contest there are about 2 minutes per question."}
+            {ins.contest === "olympiad" ? "In Olympiad round 1 there are 10 minutes per question on average; B-problems take longer." : `In the contest there are about ${isKangaroo(ins.contest) ? KANGAROO_PAPER[ins.contest].minutes / KANGAROO_PAPER[ins.contest].questions : 2} minutes per question.`}
           </p>
           <table className="people">
             <thead>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { FOCUS_AREAS, LEVEL_NAMES, type Benchmarks, type FocusArea } from "../../shared/types";
+import { CONTEST_NAMES, CONTESTS, FOCUS_AREAS, LEVEL_NAMES, type Benchmarks, type Contest, type FocusArea } from "../../shared/types";
+import { withContest } from "../contest";
 import { api, messageOf } from "../api";
 import { Chips, Segmented } from "../components/Segmented";
 import { focusColor, focusName, go, minutes, pct } from "../format";
@@ -120,7 +121,7 @@ interface Student {
 export function PrintPanel({ students }: { students: Student[] }) {
   const [who, setWho] = useState<number | null>(students[0]?.id ?? null);
   const [kind, setKind] = useState<"paper" | "focus">("paper");
-  const [contest, setContest] = useState<"kangaroo" | "olympiad">("kangaroo");
+  const [contest, setContest] = useState<Contest>("kangaroo");
   const [years, setYears] = useState<number[]>([]);
   const [year, setYear] = useState<number | null>(null);
   const [focus, setFocus] = useState<FocusArea[]>([]);
@@ -129,7 +130,7 @@ export function PrintPanel({ students }: { students: Student[] }) {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    api.get<{ year: number }[]>(contest === "olympiad" ? "/api/papers?contest=olympiad" : "/api/papers").then((p) => {
+    api.get<{ year: number }[]>(withContest("/api/papers", contest)).then((p) => {
       setYears(p.map((x) => x.year));
       setYear(p[0]?.year ?? null);
     }, () => undefined);
@@ -171,7 +172,7 @@ export function PrintPanel({ students }: { students: Student[] }) {
           </div>
           <div className="setting">
             <span className="setting-name">Contest</span>
-            <Segmented label="Contest" value={contest} onChange={setContest} options={[{ value: "kangaroo", label: "Kangaroo" }, { value: "olympiad", label: "Olympiad" }]} />
+            <Segmented label="Contest" value={contest} onChange={setContest} options={CONTESTS.map((c) => ({ value: c, label: CONTEST_NAMES[c] }))} />
           </div>
           <div className="setting">
             <span className="setting-name">What</span>

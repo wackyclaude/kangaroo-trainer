@@ -37,6 +37,8 @@ export interface ReadinessInput {
   papers: number;
   distinctQuestions: number;
   target: number;
+  /** What the estimate and target are out of (default 120). */
+  max?: number;
 }
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
@@ -65,7 +67,7 @@ export function readiness(input: ReadinessInput): Pick<Readiness, "percent" | "p
       percent: pct(score),
       weight: WEIGHTS.score,
       label: "Score",
-      detail: input.estimate === null ? `Do a full past paper to get a contest score estimate (target ${input.target}).` : `Estimated ${input.estimate} out of 120, target ${input.target}.`,
+      detail: input.estimate === null ? `Do a full past paper to get a contest score estimate (target ${input.target}).` : `Estimated ${input.estimate} out of ${input.max ?? 120}, target ${input.target}.`,
     },
     practice: {
       percent: pct(practice),
