@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { HelpLevel } from "../../shared/types";
+import { CONTEST_NAMES, isKangaroo, KANGAROO_PAPER, type HelpLevel } from "../../shared/types";
 import { api, messageOf } from "../api";
 import { Segmented } from "../components/Segmented";
 import { go, HELP_TEXT } from "../format";
@@ -16,6 +16,7 @@ interface PaperInfo {
 export function StartPaper() {
   const [contest] = useContest();
   const oly = contest === "olympiad";
+  const size = isKangaroo(contest) ? KANGAROO_PAPER[contest] : null;
   const [papers, setPapers] = useState<PaperInfo[]>([]);
   const [year, setYear] = useState<number | null>(null);
   const [help, setHelp] = useState<HelpLevel>("test");
@@ -66,11 +67,11 @@ export function StartPaper() {
         <button type="button" className="btn quiet" onClick={() => go("#/")}>
           ← Back
         </button>
-        <h1>{oly ? "Full Olympiad paper" : "Full past paper"}</h1>
+        <h1>{oly ? "Full Olympiad paper" : `Full ${CONTEST_NAMES[contest]} paper`}</h1>
         <p className="muted">
           {oly
             ? "Pick a year. Round 1 has 8 multiple-choice questions (2 points each) and 4 B-problems where you type the exact answer (5 points each). 120 minutes, no calculator. Each paper is compared with that year's cutoff."
-            : "Pick a year. A real paper has 24 questions and 50 minutes, and gets harder as you go."}
+            : `Pick a year. A real paper has ${size?.questions} questions and ${size?.minutes} minutes, and gets harder as you go.`}
         </p>
       </div>
 
@@ -108,7 +109,7 @@ export function StartPaper() {
         )}
         <label className="toggle">
           <input type="checkbox" checked={timed} onChange={(e) => setTimed(e.target.checked)} />
-          <span>{oly ? "120-minute timer" : "50-minute timer"}</span>
+          <span>{oly ? "120-minute timer" : `${size?.minutes}-minute timer`}</span>
         </label>
         {error && <div className="message" role="alert">{error}</div>}
         <div>

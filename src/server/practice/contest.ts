@@ -1,8 +1,8 @@
 // Which contests a profile has, and the Olympiad settings the parent chose.
-import { eq } from "drizzle-orm";
+import { and, eq, type SQL } from "drizzle-orm";
 import type { Db } from "../db/client.js";
 import { profile, question } from "../db/schema.js";
-import { CONTESTS, DEFAULT_OLYMPIAD, OLY_LEVELS, type Contest, type OlyLevel, type OlympiadSettings } from "../../shared/types.js";
+import { CONTESTS, DEFAULT_OLYMPIAD, KANGAROO_LEVEL, OLY_LEVELS, type Contest, type OlyLevel, type OlympiadSettings } from "../../shared/types.js";
 
 type ProfileRow = typeof profile.$inferSelect;
 type QuestionRow = typeof question.$inferSelect;
@@ -33,7 +33,14 @@ export function profileSettings(db: Db, profileId: number) {
   return p ? { contests: contestsOf(p), olympiad: olympiadOf(p) } : null;
 }
 
-export const contestOfSession = (s: { contest?: string | null }): Contest => (s.contest === "olympiad" ? "olympiad" : "kangaroo");
+export const contestOfSession = (s: { contest?: string | null }): Contest => (s.contest === "olympiad" || s.contest === "brain" ? s.contest : "kangaroo");
+
+/** Which contest a question belongs to: both Kangaroo levels are stored as contest "kangaroo". */
+export const contestOfQuestion = (q: Pick<QuestionRow, "contest" | "level">): Contest => (q.contest === "olympiad" ? "olympiad" : q.level === KANGAROO_LEVEL.brain ? "brain" : "kangaroo");
+
+/** Which question rows belong to a contest's bank. */
+export const inContest = (contest: Contest): SQL =>
+  contest === "olympiad" ? eq(question.contest, "olympiad") : and(eq(question.contest, "kangaroo"), eq(question.level, KANGAROO_LEVEL[contest]))!;
 
 /** "7" for Kangaroo; "A3" or "B2" for the Olympiad (B-numbers restart after the 8 A-questions). */
 export function labelOf(q: Pick<QuestionRow, "contest" | "part" | "number">): string {

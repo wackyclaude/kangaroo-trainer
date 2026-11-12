@@ -103,6 +103,7 @@ export async function questionRoutes(app: FastifyInstance, deps: { db: Db; conte
     return reply.type("image/png").send(fs.createReadStream(full));
   };
   app.get("/content/img/:file", servePicture(imgDir));
+  app.get("/content/brain/img/:file", servePicture(path.join(deps.contentDir, "brain", "img")));
   app.get("/content/olympiad/img/:file", servePicture(path.join(deps.contentDir, "olympiad", "img")));
   app.get("/content/olympiad/sol/:file", servePicture(path.join(deps.contentDir, "olympiad", "sol")));
 }

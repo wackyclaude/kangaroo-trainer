@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import type { Db } from "../db/client.js";
 import { profile, question } from "../db/schema.js";
-import { DEFAULT_TARGET_SCORE, FOCUS_AREAS, type Contest, type FocusArea, type Readiness } from "../../shared/types.js";
+import { DEFAULT_TARGET_SCORE, FOCUS_AREAS, KANGAROO_PAPER, type Contest, type FocusArea, type Readiness } from "../../shared/types.js";
 import { buildInsights, compareGroupOf, countedAnswers, finishedPapers, olympiadInsights } from "../insights/store.js";
 import { dayKey } from "../rewards/model.js";
 import { HOME_TIME_ZONE } from "../rewards/store.js";
@@ -31,22 +31,26 @@ export function buildReadiness(db: Db, profileId: number, now = Date.now(), cont
     const r = olympiadReadiness({ areas, papers, distinctQuestions: new Set(answers.map((a) => a.questionId)).size, shift: o.targetShift });
     return { kind: "olympiad", contest: olympiadContestFor(today, o.date), target: o.targetShift, ...r, suggestWiden: olympiadInsights(db, profileId, answers).suggestWiden };
   }
-  const ins = buildInsights(db, profileId, now, "kangaroo");
+  const ins = buildInsights(db, profileId, now, contest);
   if (!ins) return null;
-  const target = p.targetScore ?? DEFAULT_TARGET_SCORE;
-  const distinct = new Set(countedAnswers(db, profileId, undefined, "kangaroo").map((a) => a.questionId)).size;
+  // The parent sets one target out of 120; wizBRAIN papers are out of 150, so it scales up (100 → 125).
+  const max = KANGAROO_PAPER[contest].max;
+  const target = Math.round(((p.targetScore ?? DEFAULT_TARGET_SCORE) * max) / 120);
+  const distinct = new Set(countedAnswers(db, profileId, undefined, contest).map((a) => a.questionId)).size;
   const r = readiness({
     areas: ins.areas.map((a) => ({ focus: a.focus, weightedAccuracy: a.weightedAccuracy, attempts: a.attempts })),
     estimate: ins.estimate?.score ?? null,
     papers: ins.totals.papers,
     distinctQuestions: distinct,
     target,
+    max,
   });
   const vs = ins.vsAverage;
   return {
-    kind: "kangaroo",
+    kind: contest,
     contest: contestFor(today, p.contestDate),
     target,
+    max,
     ...r,
     compareGroup: compareGroupOf(p),
     ...(vs?.recent ? { vsAverage: { ...vs.recent, groupName: vs.groupName } } : {}),

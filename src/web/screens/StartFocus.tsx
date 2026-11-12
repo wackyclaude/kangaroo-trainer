@@ -82,7 +82,7 @@ export function StartFocus() {
             <Chips label="Levels" values={levels} onChange={setLevels} options={OLY_LEVELS.map((l) => ({ value: String(l), label: `Level ${l}` }))} />
             <LevelGuide items={OLY_LEVELS.map((l) => ({ name: `Level ${l} · ${OLY_LEVEL_NAME[l]}`, text: `${KANGAROO_LEVEL_TEXT[l]} got it right.` }))} />
             <p className="muted small-line" style={{ margin: 0 }}>
-              From how real wizSMART pupils did on each question. None picked = all levels.
+              From how real contest pupils did on each question. None picked = all levels.
             </p>
           </>
         )}

@@ -2,9 +2,12 @@ import { and, asc, eq, gt, sql } from "drizzle-orm";
 import type { Db } from "../db/client.js";
 import { attempt, practiceSession, profile, question, sessionQuestion } from "../db/schema.js";
 import { compareGroupOf, countedAnswers, reviewQueue } from "../insights/store.js";
-import { COMPARE_GROUP_NAMES, COMPARE_GROUPS, DEFAULT_COMPARE_GROUP, groupYear } from "../../shared/benchmarks.js";
+import { DEFAULT_COMPARE_GROUP, groupsFor } from "../../shared/benchmarks.js";
 import { pickMistakes, pickSmart, shuffle } from "../insights/pick.js";
 import {
+  isKangaroo,
+  KANGAROO_LEVEL,
+  KANGAROO_PAPER,
   SCORING,
   TIERS,
   type Contest,
@@ -24,7 +27,7 @@ import {
 import { checkAnswer } from "../../shared/answers.js";
 import { betterThan, olympiadPapers, paceMarks } from "../content/olympiad.js";
 import { pupilStats } from "../content/pupils.js";
-import { contestOfSession, imageUrl, labelOf, profileSettings } from "./contest.js";
+import { contestOfSession, imageUrl, inContest, labelOf, profileSettings } from "./contest.js";
 
 type QuestionRow = typeof question.$inferSelect;
 
@@ -35,8 +38,7 @@ const tierRank = (t: string) => TIERS.indexOf(t as Tier);
 /** Easiest first: by level 1–5, then (Kangaroo) by tier, then by number (Olympiad: A before B on a tie). */
 const easiestFirst = (a: QuestionRow, b: QuestionRow) => (a.difficulty ?? 3) - (b.difficulty ?? 3) || tierRank(a.tier) - tierRank(b.tier) || a.number - b.number;
 
-/** Which rows belong to a contest's bank (Kangaroo is wizSMART only). */
-export const inContest = (contest: Contest) => (contest === "olympiad" ? eq(question.contest, "olympiad") : and(eq(question.contest, "kangaroo"), eq(question.level, "wizSMART")));
+export { inContest } from "./contest.js";
 
 /** Picks the questions for a new session. Returns null when nothing matches. */
 export function pickQuestions(db: Db, profileId: number, mode: PracticeMode, paperYear: number | null, s: SessionSettings, now = Date.now()): QuestionRow[] | null {
@@ -75,7 +77,7 @@ export function pickQuestions(db: Db, profileId: number, mode: PracticeMode, pap
     const top = Math.max(...(s.levels ?? [0]));
     const stretchPool = contest === "olympiad" && s.stretch && top < 5 ? shuffle(all.filter((q) => q.difficulty === top + 1 && !recent.has(q.id))) : [];
     const n = (s.count ?? 12) - (stretchPool.length ? 1 : 0);
-    const picked = pickSmart(usable, countedAnswers(db, profileId, undefined, contest), reviewQueue(db, profileId, now), recent, n, now, contest === "kangaroo");
+    const picked = pickSmart(usable, countedAnswers(db, profileId, undefined, contest), reviewQueue(db, profileId, now), recent, n, now, isKangaroo(contest));
     const out = stretchPool[0] ? [...picked, stretchPool[0]] : picked;
     return out.length ? out.sort(easiestFirst) : null;
   }
@@ -189,7 +191,7 @@ export function points(q: QuestionRow, choice: string | null): number {
 export function revealOf(q: QuestionRow, note: string | null = null): Reveal | undefined {
   if (q.contest !== "olympiad") {
     if (q.difficulty === null) return undefined;
-    return { note, officialUrl: null, stats: null, level: q.difficulty as OlyLevel, pupils: q.level === "wizSMART" ? pupilStats(q.year, q.number, q.answer) : null };
+    return { note, officialUrl: null, stats: null, level: q.difficulty as OlyLevel, pupils: pupilStats(q.level, q.year, q.number, q.answer) };
   }
   return { note, officialUrl: q.officialPath ? imageUrl(q.officialPath) : null, stats: q.stats ?? null, level: (q.difficulty as OlyLevel | null) ?? null };
 }
@@ -290,20 +292,21 @@ export function buildResults(db: Db, sessionId: number): SessionResults | null {
       const shift = profileSettings(db, s.profileId)?.olympiad.targetShift ?? 0;
       cutoff = { year: s.paperYear, cutoff: f.cutoff, diff: score - f.cutoff, betterThan: betterThan(f.scores, score), target: f.cutoff + shift };
     }
-  } else if (contest === "kangaroo" && s.mode === "paper" && s.maxScore === 120) {
+  } else if (isKangaroo(contest) && s.mode === "paper" && s.maxScore === KANGAROO_PAPER[contest].max) {
     const who = db.select({ compareGroup: profile.compareGroup }).from(profile).where(eq(profile.id, s.profileId)).get();
-    const group = who ? compareGroupOf(who) : DEFAULT_COMPARE_GROUP;
-    const g = groupYear(s.paperYear, group);
+    const groups = groupsFor(KANGAROO_LEVEL[contest], who ? compareGroupOf(who) : DEFAULT_COMPARE_GROUP);
+    const g = groups.at(s.paperYear);
     if (g) {
       benchmark = {
         year: s.paperYear!,
-        group,
-        groupName: COMPARE_GROUP_NAMES[group],
+        group: groups.group,
+        groupName: groups.groupName,
         entrants: g.entrants,
         average: g.average,
         highest: g.highest,
+        max: groups.max,
         diff: Math.round((score - g.average) * 10) / 10,
-        others: COMPARE_GROUPS.filter((x) => x !== group).map((x) => ({ groupName: COMPARE_GROUP_NAMES[x], average: groupYear(s.paperYear, x)!.average })),
+        others: groups.others(s.paperYear!),
       };
     }
   } else if (contest === "olympiad" && rows.length >= 6) {

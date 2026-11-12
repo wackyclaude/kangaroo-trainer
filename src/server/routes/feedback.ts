@@ -5,7 +5,7 @@ import { and, count, desc, eq, gt, isNotNull, isNull } from "drizzle-orm";
 import type { Db } from "../db/client.js";
 import { feedback, practiceSession, profile, question } from "../db/schema.js";
 import { FEEDBACK_KINDS, FEEDBACK_MAX_CHARS, FEEDBACK_PER_DAY, APP_FEEDBACK, QUESTION_FEEDBACK, type Contest, type FeedbackItem, type FeedbackKind } from "../../shared/types.js";
-import { imageUrl, labelOf } from "../practice/contest.js";
+import { contestOfQuestion, imageUrl, labelOf } from "../practice/contest.js";
 import { requireParent, requireUser } from "./guards.js";
 
 const DAY = 86_400_000;
@@ -42,7 +42,7 @@ export async function feedbackRoutes(app: FastifyInstance, deps: { db: Db }): Pr
     question: r.q
       ? {
           id: r.q.id,
-          contest: r.q.contest as Contest,
+          contest: contestOfQuestion(r.q),
           year: r.q.year,
           label: labelOf(r.q),
           imageUrl: imageUrl(r.q.imagePath),

@@ -4,8 +4,8 @@ import { api, messageOf } from "../api";
 import { MeContext } from "../contest";
 import { when } from "../format";
 
-/** "2024 Kangaroo Q7" or "2025 Olympiad B2". */
-export const questionName = (q: NonNullable<FeedbackItem["question"]>) => `${q.year} ${q.contest === "olympiad" ? `Olympiad ${q.label}` : `Kangaroo Q${q.label}`}`;
+/** "2024 wizSMART Q7", "2024 wizBRAIN Q7" or "2025 Olympiad B2". */
+export const questionName = (q: NonNullable<FeedbackItem["question"]>) => `${q.year} ${q.contest === "olympiad" ? `Olympiad ${q.label}` : `${q.contest === "brain" ? "wizBRAIN" : "wizSMART"} Q${q.label}`}`;
 
 /** A student's message to the parent: about one question (questionId) or about the app. */
 export function FeedbackForm({ questionId = null, sessionId = null, onSent, onCancel }: { questionId?: string | null; sessionId?: number | null; onSent?: () => void; onCancel?: () => void }) {

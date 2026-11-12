@@ -149,7 +149,7 @@ export function ContestSettings({ profileId, name, r, onSaved }: { profileId: nu
         <label className="field">
           Target score
           <input type="number" inputMode="numeric" min={40} max={120} step={1} required value={target} onChange={(e) => setTarget(e.target.value)} />
-          <span className="hint">Out of 120. This score counts as 100% on the score part.</span>
+          <span className="hint">Out of 120 on wizSMART (wizBRAIN scales it to 150). This score counts as 100% on the score part.</span>
         </label>
         <label className="field">
           Compare with
@@ -160,7 +160,7 @@ export function ContestSettings({ profileId, name, r, onSaved }: { profileId: nu
               </option>
             ))}
           </select>
-          <span className="hint">Real wizSMART entrants' average. Groep 8 is about her age.</span>
+          <span className="hint">Real wizSMART entrants' average. Groep 8 is about her age. wizBRAIN always compares with havo/vwo 1.</span>
         </label>
       </div>
       <div className="row">

@@ -65,11 +65,11 @@ export function Print({ sessionId, me }: { sessionId: number; me: Me }) {
 
       <header className="print-head">
         <div>
-          <strong className="print-title">{oly ? "Olympiad round 1" : "wizSMART"} · {title}</strong>
+          <strong className="print-title">{oly ? "Olympiad round 1" : s.contest === "brain" ? "wizBRAIN" : "wizSMART"} · {title}</strong>
           <div className="print-sub">
             {oly
               ? `${n} questions${isPaperYear ? ", 120 minutes" : ""}, no calculator. A-questions: 2 points, B-questions: 5 points for the exact answer. Wrong or blank = 0.`
-              : `${n} questions${isPaperYear ? ", 50 minutes" : ""}, no calculator. Right = ${SCORING.correct} points, blank = ${SCORING.blank}, wrong = ${SCORING.wrong}.`}
+              : `${n} questions${isPaperYear ? (s.contest === "brain" ? ", 75 minutes" : ", 50 minutes") : ""}, no calculator. Right = ${SCORING.correct} points, blank = ${SCORING.blank}, wrong = ${SCORING.wrong}.`}
           </div>
         </div>
         <div className="print-name">

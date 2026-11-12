@@ -41,16 +41,20 @@ export function ParentHome({ me }: { me: Me }) {
   const students = people.filter((p) => p.role === "student");
   const [ready, setReady] = useState<Record<number, Readiness>>({});
   const [olyReady, setOlyReady] = useState<Record<number, Readiness>>({});
+  const [brainReady, setBrainReady] = useState<Record<number, Readiness>>({});
+  const loadBrain = (id: number) => api.get<Readiness>(`/api/readiness/${id}?contest=brain`).then((r) => setBrainReady((x) => ({ ...x, [id]: r })), () => undefined);
   const studentKey = students.map((s) => `${s.id}:${s.contests.join("+")}`).join(",");
   useEffect(() => {
     for (const s of students) {
       api.get<Readiness>(`/api/readiness/${s.id}`).then((r) => setReady((x) => ({ ...x, [s.id]: r })), () => undefined);
+      if (s.contests.includes("brain")) void loadBrain(s.id);
       if (s.contests.includes("olympiad")) api.get<Readiness>(`/api/readiness/${s.id}?contest=olympiad`).then((r) => setOlyReady((x) => ({ ...x, [s.id]: r })), () => undefined);
     }
   }, [studentKey]);
   const savedOly = (id: number, saved: SavedOlympiad) => {
     setPeople((list) => list.map((p) => (p.id === id ? { ...p, contests: saved.contests, olympiad: saved.olympiad } : p)));
     if (saved.readiness) setOlyReady((x) => ({ ...x, [id]: saved.readiness! }));
+    if (saved.contests.includes("brain")) void loadBrain(id);
   };
 
   const resetPin = async (p: AdminProfile) => {
@@ -178,12 +182,23 @@ export function ParentHome({ me }: { me: Me }) {
                     {s.avatar} {s.nickname}
                   </h3>
                   <ContestToggles profileId={s.id} name={s.nickname} value={s.contests} onSaved={(saved) => savedOly(s.id, saved)} />
-                  {s.contests.includes("kangaroo") &&
+                  {(s.contests.includes("kangaroo") || s.contests.includes("brain")) &&
                     (r ? (
                       <>
-                        <ReadinessCard r={r} headingLevel={3} title={`Kangaroo: ${r.percent}% ready`} idKey={String(s.id)} />
+                        {s.contests.includes("kangaroo") && <ReadinessCard r={r} headingLevel={3} title={`wizSMART: ${r.percent}% ready`} idKey={String(s.id)} />}
+                        {s.contests.includes("brain") && brainReady[s.id] && (
+                          <ReadinessCard r={brainReady[s.id]!} headingLevel={3} title={`wizBRAIN: ${brainReady[s.id]!.percent}% ready`} idKey={`${s.id}-brain`} />
+                        )}
                         <p className="muted small-line">{countdownShort(r.contest)}</p>
-                        <ContestSettings profileId={s.id} name={s.nickname} r={r} onSaved={(n) => setReady((x) => ({ ...x, [s.id]: n }))} />
+                        <ContestSettings
+                          profileId={s.id}
+                          name={s.nickname}
+                          r={r}
+                          onSaved={(n) => {
+                            setReady((x) => ({ ...x, [s.id]: n }));
+                            if (s.contests.includes("brain")) void loadBrain(s.id);
+                          }}
+                        />
                       </>
                     ) : (
                       <p className="muted">Loading {s.nickname}…</p>

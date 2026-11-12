@@ -82,7 +82,7 @@ export const practiceSession = sqliteTable(
     id: integer("id").primaryKey({ autoIncrement: true }),
     profileId: integer("profile_id").notNull().references(() => profile.id, { onDelete: "cascade" }),
     mode: text("mode", { enum: ["paper", "focus", "mistakes", "smart"] }).notNull(),
-    contest: text("contest", { enum: ["kangaroo", "olympiad"] }).notNull().default("kangaroo"),
+    contest: text("contest", { enum: ["kangaroo", "brain", "olympiad"] }).notNull().default("kangaroo"),
     settings: text("settings", { mode: "json" }).notNull(),
     paperYear: integer("paper_year"),
     startedAt: integer("started_at").notNull(),
@@ -140,7 +140,7 @@ export const masterySnapshot = sqliteTable(
     id: integer("id").primaryKey({ autoIncrement: true }),
     profileId: integer("profile_id").notNull().references(() => profile.id, { onDelete: "cascade" }),
     focusArea: text("focus_area").notNull(),
-    contest: text("contest", { enum: ["kangaroo", "olympiad"] }).notNull().default("kangaroo"),
+    contest: text("contest", { enum: ["kangaroo", "brain", "olympiad"] }).notNull().default("kangaroo"),
     level: text("level", { enum: ["starter", "developing", "solid", "competition-ready"] }).notNull(),
     weightedAccuracy: real("weighted_accuracy").notNull(),
     attempts: integer("attempts").notNull(),
@@ -153,7 +153,7 @@ export const masterySnapshot = sqliteTable(
 export const contestPaper = sqliteTable(
   "contest_paper",
   {
-    contest: text("contest", { enum: ["kangaroo", "olympiad"] }).notNull(),
+    contest: text("contest", { enum: ["kangaroo", "brain", "olympiad"] }).notNull(),
     year: integer("year").notNull(),
     maxScore: integer("max_score").notNull(),
     minutes: integer("minutes").notNull(),

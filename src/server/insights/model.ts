@@ -1,6 +1,6 @@
 // Pure insight rules (no database). Everything here is calculated from the answer log,
 // so it can be rebuilt at any time and tested with plain arrays.
-import { FOCUS_AREAS, MASTERED_BOX, OLY_LEVELS, REVIEW_DAYS, TIERS, type FocusArea, type Level, type OlyLevel, type Tier } from "../../shared/types.js";
+import { FOCUS_AREAS, MASTERED_BOX, OLY_LEVELS, REVIEW_DAYS, TIERS, type Contest, type FocusArea, type Level, type OlyLevel, type Tier } from "../../shared/types.js";
 
 const DAY = 86_400_000;
 
@@ -20,7 +20,7 @@ export interface Answer {
   answeredAt: number;
   sessionId: number | null;
   /** Olympiad extras (missing for Kangaroo). */
-  contest?: "kangaroo" | "olympiad";
+  contest?: Contest;
   part?: "A" | "B" | null;
   points?: number | null;
   difficulty?: number | null;
@@ -236,13 +236,14 @@ export function speedStats(all: Answer[]) {
   return { byTier, byArea, guesses, slow };
 }
 
-/** Projected score out of 120 from the last 3 finished full papers (scaled, so the 30-question 2005 paper fits). */
-export function contestEstimate(papers: { score: number; maxScore: number; endedAt: number }[]) {
-  const last = [...papers].sort((a, b) => b.endedAt - a.endedAt).slice(0, 3).map((p) => (p.score / p.maxScore) * 120);
+/** Projected score out of max (120 wizSMART, 150 wizBRAIN) from the last 3 finished full papers, scaled so older paper sizes fit. */
+export function contestEstimate(papers: { score: number; maxScore: number; endedAt: number }[], max = 120) {
+  const last = [...papers].sort((a, b) => b.endedAt - a.endedAt).slice(0, 3).map((p) => (p.score / p.maxScore) * max);
   if (last.length === 0) return null;
   const mean = last.reduce((t, x) => t + x, 0) / last.length;
   // With one paper we only know it roughly: ±10 points. With more, use the spread of the papers (at least ±5).
-  const spread = last.length === 1 ? 10 : Math.max(5, (Math.max(...last) - Math.min(...last)) / 2);
-  const clip = (x: number) => Math.max(0, Math.min(120, Math.round(x)));
+  const unit = max / 120;
+  const spread = last.length === 1 ? 10 * unit : Math.max(5 * unit, (Math.max(...last) - Math.min(...last)) / 2);
+  const clip = (x: number) => Math.max(0, Math.min(max, Math.round(x)));
   return { score: clip(mean), low: clip(mean - spread), high: clip(mean + spread), papers: last.length };
 }

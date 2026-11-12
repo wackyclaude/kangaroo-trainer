@@ -77,9 +77,19 @@ export const ACCENT_NAMES: Record<Accent, string> = { violet: "Violet", mint: "M
 
 // ---------- contests (M8) ----------
 
-export const CONTESTS = ["kangaroo", "olympiad"] as const;
+/** "kangaroo" is the wizSMART paper (groep 7–8, vmbo 1–2); "brain" is wizBRAIN (havo/vwo 1–2), the same contest one level up. */
+export const CONTESTS = ["kangaroo", "brain", "olympiad"] as const;
 export type Contest = (typeof CONTESTS)[number];
-export const CONTEST_NAMES: Record<Contest, string> = { kangaroo: "Kangaroo", olympiad: "Olympiad" };
+export type KangarooContest = Exclude<Contest, "olympiad">;
+export const CONTEST_NAMES: Record<Contest, string> = { kangaroo: "wizSMART", brain: "wizBRAIN", olympiad: "Olympiad" };
+/** Both Kangaroo levels share scoring, tiers and hints; only the paper size and the pupils differ. */
+export const isKangaroo = (c: string | null | undefined): c is KangarooContest => c === "kangaroo" || c === "brain";
+export const KANGAROO_LEVEL: Record<KangarooContest, "wizSMART" | "wizBRAIN"> = { kangaroo: "wizSMART", brain: "wizBRAIN" };
+/** A full current paper: questions, minutes and maximum score. */
+export const KANGAROO_PAPER: Record<KangarooContest, { questions: number; minutes: number; max: number }> = {
+  kangaroo: { questions: 24, minutes: 50, max: 120 },
+  brain: { questions: 30, minutes: 75, max: 150 },
+};
 
 /** Olympiad difficulty for a klas-1 student, from the share of klas 1 that got it right. */
 export const OLY_LEVELS = [1, 2, 3, 4, 5] as const;
@@ -91,7 +101,7 @@ export const OLY_LEVEL_TEXT: Record<OlyLevel, string> = {
   4: "10–19% of klas 1",
   5: "under 10% of klas 1",
 };
-/** Kangaroo difficulty, from the share of real wizSMART pupils who got the question right. */
+/** Kangaroo difficulty, from the share of real pupils at that level who got the question right. */
 export const KANGAROO_LEVEL_TEXT: Record<OlyLevel, string> = {
   1: "65% or more of pupils",
   2: "50–64% of pupils",
@@ -108,7 +118,7 @@ const KANGAROO_LEVEL_FLOOR: [OlyLevel, number][] = [
 /** Level 1–5 for a share right (whole %). */
 export const kangarooLevel = (pctRight: number): OlyLevel => KANGAROO_LEVEL_FLOOR.find(([, floor]) => pctRight >= floor)?.[0] ?? 5;
 
-/** How real wizSMART pupils answered one question (whole %), from that year's report. */
+/** How real pupils at the question's level answered it (whole %), from that year's report. */
 export interface PupilStats {
   year: number;
   right: number;
@@ -434,7 +444,7 @@ export interface Insights {
     guesses: SpeedFlag[];
     slow: SpeedFlag[];
   };
-  /** Projected score out of 120, from the last 3 full papers. */
+  /** Projected score out of paperMax, from the last 3 full papers. */
   estimate: { score: number; low: number; high: number; papers: number } | null;
   totals: { answers: number; sessions: number; papers: number };
   tierTarget: Tier;
@@ -443,16 +453,20 @@ export interface Insights {
   /** Kangaroo: right answers over the last 20 at each level. */
   byLevel: { level: OlyLevel; answers: number; right: number }[];
   contest: Contest;
+  /** Kangaroo: the maximum on a full current paper (120 wizSMART, 150 wizBRAIN). */
+  paperMax: number;
   /** Olympiad only. */
   olympiad?: OlympiadInsights;
   /** Kangaroo only: full papers against the real entrants' average that year. */
   vsAverage?: VsAverage | null;
 }
 
-/** Her full Kangaroo papers next to how real wizSMART entrants in the chosen group scored on them. */
+/** Her full Kangaroo papers next to how real entrants in the chosen group scored on them. */
 export interface VsAverage {
   group: string;
   groupName: string;
+  /** 120 for wizSMART, 150 for wizBRAIN. */
+  max: number;
   papers: { sessionId: number; year: number; score: number; average: number; entrants: number; diff: number; at: number }[];
   /** Over the last 3 such papers (null without any). */
   recent: { papers: number; diff: number; score: number; average: number } | null;
@@ -466,6 +480,8 @@ export interface PaperBenchmark {
   entrants: number;
   average: number;
   highest: number | null;
+  /** 120 for wizSMART, 150 for wizBRAIN. */
+  max: number;
   diff: number;
   /** The other groups' averages, for the scale. */
   others: { groupName: string; average: number }[];
@@ -524,8 +540,8 @@ export const BADGES = [
   { id: "first-quiz", name: "First hop", description: "Finish your first quiz or paper.", need: 1 },
   { id: "first-paper", name: "Full paper", description: "Finish a whole Kangaroo past paper.", need: 1 },
   { id: "no-skip", name: "No skips", description: "Answer every question of a full paper.", need: 1 },
-  { id: "score-80", name: "80 club", description: "Score 80 or more out of 120 on a full Kangaroo paper.", need: 80 },
-  { id: "score-100", name: "100 club", description: "Score 100 or more out of 120 on a full Kangaroo paper.", need: 100 },
+  { id: "score-80", name: "80 club", description: "Score 80 out of 120 on a full wizSMART paper (100 out of 150 on wizBRAIN).", need: 80 },
+  { id: "score-100", name: "100 club", description: "Score 100 out of 120 on a full wizSMART paper (125 out of 150 on wizBRAIN).", need: 100 },
   { id: "on-a-roll", name: "On a roll", description: "Get 10 right in a row in one quiz.", need: 10 },
   { id: "fixer", name: "Mistake fixer", description: "Fix 10 past mistakes for good.", need: 10 },
   { id: "streak-3", name: "3-day streak", description: "Practise 3 days in a row.", need: 3 },
@@ -567,7 +583,7 @@ export interface Rewards {
   streak: { current: number; best: number; practisedToday: boolean };
   week: { goal: number; practisedDays: number; days: WeekDay[] };
   badges: Badge[];
-  /** Best full Kangaroo paper score so far (out of 120). */
+  /** Best full wizSMART paper score so far (out of 120). */
   bestPaper: number | null;
 }
 
@@ -610,6 +626,8 @@ export interface Readiness {
     nextRound?: string | null;
   };
   target: number;
+  /** Kangaroo: what the target and estimate are out of (120 or 150). */
+  max?: number;
   percent: number;
   parts: { skill: ReadinessPart; score: ReadinessPart; practice: ReadinessPart };
   /** One line on what would raise readiness most. */
