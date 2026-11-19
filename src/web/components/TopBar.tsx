@@ -1,5 +1,5 @@
 import { Mascot } from "./Mascot";
-import { MASCOT_SKINS, type Me } from "../../shared/types";
+import { buddyOf, type Me } from "../../shared/types";
 import { Face } from "./Face";
 import { useSkin } from "../skin";
 
@@ -13,12 +13,13 @@ const TABS = [
 /** Students get four places to go (a bar at the bottom on phones); the parent keeps "Switch profile". */
 export function TopBar({ me, hash = "#/", onSignOut }: { me?: Me | null; hash?: string; onSignOut?: () => void }) {
   const skin = useSkin();
+  const buddy = me?.buddy ?? buddyOf(null, skin);
   const student = me?.role === "student";
   return (
     <header className="topbar">
       <div className="brand">
         <span className="brand-badge" aria-hidden="true">
-          {!MASCOT_SKINS.includes(skin) ? <span className="brand-mark">KT</span> : <Mascot mood="calm" headOnly size={26} />}
+          {buddy === "none" ? <span className="brand-mark">KT</span> : <Mascot buddy={buddy} mood="calm" headOnly size={26} />}
         </span>
         Kangaroo Trainer
       </div>

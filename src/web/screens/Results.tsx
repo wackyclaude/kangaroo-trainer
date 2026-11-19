@@ -1,3 +1,5 @@
+import { endLine } from "../buddy";
+import { MascotSays } from "../components/Mascot";
 import { track } from "../usage";
 import { useContext, useEffect, useState } from "react";
 import type { PaperBenchmark, ResultRow, SessionResults } from "../../shared/types";
@@ -55,6 +57,18 @@ export function Results({ sessionId }: { sessionId: number }) {
   const missed = r.rows.filter((x) => !x.correct && !x.voided).length;
   const showList = listOpen ?? (!student || r.help === "test" || r.mode === "paper");
   const rw = r.rewards;
+  // The buddy's end-of-quiz line, with one specific thing to be proud of.
+  const buddyEnd = (() => {
+    if (!student || me?.buddy === "none" || me?.buddyMode === "off") return null;
+    let best = 0;
+    let run = 0;
+    for (const row of r.rows) {
+      run = row.correct ? run + 1 : 0;
+      best = Math.max(best, run);
+    }
+    const right = r.rows.filter((x) => x.correct || x.voided).length;
+    return endLine(right, r.rows.length, { challengeRight: r.rows.filter((x) => x.tier === "challenge" && x.correct).length, bestStreak: best }, () => ((sessionId * 9301 + 49297) % 233280) / 233280);
+  })();
 
   const again = async (mode: "smart" | "mistakes") => {
     setBusy(true);
@@ -73,7 +87,13 @@ export function Results({ sessionId }: { sessionId: number }) {
           {title} · {onPaper ? "done on paper" : duration(r.totalTimeMs)}
         </p>
         <h1>{inPoints ? `${r.score} out of ${r.maxScore} points` : `${r.correct} out of ${r.rows.length}`}</h1>
-        <p className="lead">{verdict(r)}</p>
+        {buddyEnd ? (
+          <MascotSays mood={buddyEnd.mood} size={88} role="status">
+            <p>{buddyEnd.text}</p>
+          </MascotSays>
+        ) : (
+          <p className="lead">{verdict(r)}</p>
+        )}
         <div className="q-track big" role="img" aria-label={`${r.correct} right, ${r.wrong} wrong, ${r.blank} skipped`}>
           {r.rows.map((row) => (
             <span key={row.position} className={row.voided || row.correct ? "right" : row.choice === null ? "skip" : "wrong"} />

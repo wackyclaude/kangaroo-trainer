@@ -58,6 +58,9 @@ export interface Me {
   olympiad: OlympiadSettings;
   /** The look this profile picked. */
   theme: Skin;
+  /** Quiz buddy and how chatty it is (resolved: never null). */
+  buddy: Buddy;
+  buddyMode: BuddyMode;
   appearance: Appearance;
   accent: Accent;
 }
@@ -69,6 +72,21 @@ export type Skin = (typeof SKINS)[number];
 export const SKIN_NAMES: Record<Skin, string> = { classic: "Exercise book", space: "Space", modern: "Modern", calm: "Calm", stickers: "Stickers", arcade: "Arcade" };
 /** Themes that show a cartoon mascot; the others are for students who'd rather not. */
 export const MASCOT_SKINS: readonly Skin[] = ["classic", "space"];
+
+// ---- Quiz buddy (mascot) ----
+/** Each student picks a buddy (or none) and how chatty it is in quizzes. */
+export const BUDDIES = ["roo", "nova", "pixel", "kit", "none"] as const;
+export type Buddy = (typeof BUDDIES)[number];
+export const BUDDY_NAMES: Record<Buddy, string> = { roo: "Roo", nova: "Nova", pixel: "Pixel", kit: "Kit", none: "No buddy" };
+export const BUDDY_LINE: Record<Buddy, string> = { roo: "Kangaroo", nova: "Alien astronaut", pixel: "Little robot", kit: "Fox in a hoodie", none: "Just the questions" };
+export const BUDDY_MODES = ["lively", "quiet", "off"] as const;
+export type BuddyMode = (typeof BUDDY_MODES)[number];
+/** Until a student picks one, the theme decides: Roo in Exercise book, Nova in Space, none in the others. */
+export function buddyOf(picked: string | null | undefined, theme: string | null | undefined): Buddy {
+  if ((BUDDIES as readonly string[]).includes(picked ?? "")) return picked as Buddy;
+  return theme === "space" ? "nova" : theme === "classic" || !theme ? "roo" : "none";
+}
+export const buddyModeOf = (m: string | null | undefined): BuddyMode => ((BUDDY_MODES as readonly string[]).includes(m ?? "") ? (m as BuddyMode) : "lively");
 /** Themes that are always dark (Modern: dark unless set to light). */
 export const DARK_ONLY_SKINS: readonly Skin[] = ["arcade"];
 export const APPEARANCES = ["auto", "light", "dark"] as const;

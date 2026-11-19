@@ -22,6 +22,8 @@ import { MathKeypad, RevealBlock } from "../components/Olympiad";
 import { PupilStrip } from "../components/PupilStrip";
 import { FeedbackForm } from "../components/Feedback";
 import { MeContext } from "../contest";
+import { BuddyPop } from "../components/BuddyPop";
+import { buddyDoes, react, say, type Reaction } from "../buddy";
 
 type Local = Omit<SavedAnswer, "position">;
 
@@ -31,7 +33,13 @@ export function Runner({ sessionId }: { sessionId: number }) {
   const [pos, setPos] = useState(1);
   const [answers, setAnswers] = useState<Map<number, Local>>(new Map());
   const [flags, setFlags] = useState<Set<number>>(new Set());
-  const isStudent = useContext(MeContext)?.role === "student";
+  const me = useContext(MeContext);
+  const isStudent = me?.role === "student";
+  // The quiz buddy (students only; none or off = no buddy in quizzes).
+  const buddyOn = isStudent && me?.buddy !== "none";
+  const does = buddyDoes(buddyOn ? (me?.buddyMode ?? "lively") : "off");
+  const [reaction, setReaction] = useState<{ r: Reaction; id: number } | null>(null);
+  const cheer = (r: Reaction) => setReaction((x) => ({ r, id: (x?.id ?? 0) + 1 }));
   const [feedbackFor, setFeedbackFor] = useState<number | null>(null);
   // Practice and learn: the answer she has tapped but not checked yet, so a slip of the finger doesn't count.
   const [picks, setPicks] = useState<Map<number, string>>(new Map());
@@ -62,6 +70,18 @@ export function Runner({ sessionId }: { sessionId: number }) {
   const current = s?.questions.find((q) => q.position === pos);
   const currentAnswer = answers.get(pos);
   const locked = !isTest && currentAnswer !== undefined;
+
+  // Stuck for 3 minutes on a question with a hint: the buddy offers it, once per question.
+  const nudged = useRef<Set<number>>(new Set());
+  const canHint = help === "learn" && !!current?.hasHint && !hints.has(pos) && !locked;
+  useEffect(() => {
+    if (isTest || !does.nudge || !canHint || nudged.current.has(pos)) return;
+    const t = setTimeout(() => {
+      nudged.current.add(pos);
+      cheer({ mood: "point", move: "bob", text: say("stuck") });
+    }, 180_000);
+    return () => clearTimeout(t);
+  }, [pos, canHint, isTest, does.nudge]);
 
   // Calm mode: in a full paper under test conditions the decoration goes quiet, like the real contest.
   const calm = isTest && s?.mode === "paper";
@@ -202,16 +222,36 @@ export function Runner({ sessionId }: { sessionId: number }) {
         },
       );
       sent.current.set(pos, spent.current.get(pos) ?? 0);
-      setAnswers((m) =>
-        new Map(m).set(pos, {
-          choice,
-          flagged: flags.has(pos),
-          correct: fb.correct,
-          answer: fb.answer,
-          steps: fb.steps,
-          reveal: fb.reveal,
-        }),
-      );
+      const next = new Map(answers).set(pos, {
+        choice,
+        flagged: flags.has(pos),
+        correct: fb.correct,
+        answer: fb.answer,
+        steps: fb.steps,
+        reveal: fb.reveal,
+      });
+      setAnswers(next);
+      if (!isTest && does.react && fb.correct !== undefined) {
+        let run = 0;
+        for (const q of [...s.questions].reverse()) {
+          const a = next.get(q.position);
+          if (!a) continue;
+          if (!a.correct) break;
+          run++;
+        }
+        cheer(
+          react({
+            correct: fb.correct,
+            choice,
+            level: fb.reveal?.level ?? null,
+            tier: current?.tier ?? "core",
+            pupils: fb.reveal?.pupils,
+            timeMs,
+            streak: run,
+            rightSoFar: [...next.values()].filter((a) => a.correct).length,
+          }),
+        );
+      }
       if (isTest) {
         const next = s.questions.find(
           (q) =>
@@ -288,6 +328,7 @@ export function Runner({ sessionId }: { sessionId: number }) {
 
   return (
     <div className="runner">
+      {buddyOn && <BuddyPop reaction={reaction?.r ?? null} id={reaction?.id ?? 0} />}
       <div className="runner-bar">
         <div className="runner-where">
           <h1 className="runner-title">{title}</h1>
@@ -468,11 +509,16 @@ export function Runner({ sessionId }: { sessionId: number }) {
             />
           )}
 
-          {hints.get(pos) && (
-            <MascotSays mood="think" size={72} role="note">
-              <p>{hints.get(pos)}</p>
-            </MascotSays>
-          )}
+          {hints.get(pos) &&
+            (does.hint ? (
+              <MascotSays mood="point" size={72} role="note">
+                <p>{hints.get(pos)}</p>
+              </MascotSays>
+            ) : (
+              <div className="speech" role="note">
+                <p>{hints.get(pos)}</p>
+              </div>
+            ))}
 
           {isB ? (
             locked ? (
