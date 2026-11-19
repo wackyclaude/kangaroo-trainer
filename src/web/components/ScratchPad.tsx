@@ -1,8 +1,10 @@
 import { useEffect, useRef } from "react";
 
 /** A see-through drawing layer over the question, for working things out. Not saved. */
-export function ScratchPad({ clearKey }: { clearKey: number }) {
+export function ScratchPad({ clearKey, onDraw }: { clearKey: number; onDraw?: () => void }) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const drew = useRef(onDraw);
+  drew.current = onDraw;
 
   useEffect(() => {
     const c = ref.current;
@@ -29,6 +31,7 @@ export function ScratchPad({ clearKey }: { clearKey: number }) {
     };
     const down = (e: PointerEvent) => {
       drawing = true;
+      drew.current?.();
       c.setPointerCapture(e.pointerId);
       const [x, y] = pos(e);
       ctx?.beginPath();

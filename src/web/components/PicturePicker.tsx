@@ -1,3 +1,4 @@
+import { track } from "../usage";
 import { useRef, useState } from "react";
 import type { Me } from "../../shared/types";
 import { api, messageOf } from "../api";
@@ -41,6 +42,7 @@ export function PicturePicker({ me, onChange }: { me: Me; onChange: (p: { avatar
     try {
       await api.put("/api/me/avatar", { avatar });
       onChange({ avatar, photo: null });
+      track("picture_change");
     } catch (e) {
       setMsg({ ok: false, text: messageOf(e) });
     } finally {
@@ -66,6 +68,7 @@ export function PicturePicker({ me, onChange }: { me: Me; onChange: (p: { avatar
     try {
       const { photo } = await api.put<{ photo: string }>("/api/me/photo", { image: preview });
       onChange({ photo });
+      track("picture_change");
       setPreview(null);
       setMsg({ ok: true, text: "New picture saved." });
     } catch (e) {

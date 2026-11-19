@@ -1,3 +1,4 @@
+import { track } from "./usage";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { CONTEST_NAMES, DEFAULT_OLYMPIAD, OLY_LEVELS, type Contest, type Me, type OlyLevel } from "../shared/types";
 
@@ -35,6 +36,7 @@ export function useContest(): [Contest, (c: Contest) => void, Contest[]] {
         /* ignore */
       }
       setState(c);
+      track("contest_switch");
       window.dispatchEvent(new Event(EVENT));
     },
     [me],

@@ -1,3 +1,4 @@
+import { track } from "../usage";
 import {
   useCallback,
   useContext,
@@ -40,6 +41,10 @@ export function Runner({ sessionId }: { sessionId: number }) {
   const [now, setNow] = useState(Date.now());
   const [scratch, setScratch] = useState(false);
   const [scratchKey, setScratchKey] = useState(0);
+  // Usage stats per question: drew on the scratch pad; how often the pick changed before Check.
+  const scratched = useRef<Set<number>>(new Set());
+  const changes = useRef<Map<number, number>>(new Map());
+  const bumpChange = (p: number) => changes.current.set(p, (changes.current.get(p) ?? 0) + 1);
   const [confirmFinish, setConfirmFinish] = useState(false);
   // What is typed in the keypad for each B-question (kept while moving between questions).
   const [typed, setTyped] = useState<Map<number, string>>(new Map());
@@ -192,6 +197,8 @@ export function Runner({ sessionId }: { sessionId: number }) {
           timeMs,
           hintUsed: hints.has(pos),
           flagged: flags.has(pos),
+          scratchUsed: scratched.current.has(pos),
+          pickChanges: changes.current.get(pos) ?? 0,
         },
       );
       sent.current.set(pos, spent.current.get(pos) ?? 0);
@@ -225,6 +232,7 @@ export function Runner({ sessionId }: { sessionId: number }) {
 
   const showHint = async () => {
     if (!s) return;
+    track("hint");
     try {
       const { hint } = await api.get<{ hint: string | null }>(
         `/api/sessions/${s.id}/hint/${pos}`,
@@ -384,12 +392,13 @@ export function Runner({ sessionId }: { sessionId: number }) {
             className={`icon-btn${flags.has(pos) ? " on" : ""}`}
             aria-pressed={flags.has(pos)}
             onClick={() =>
+              (!flags.has(pos) && track("flag"),
               setFlags((f) => {
                 const n = new Set(f);
                 if (n.has(pos)) n.delete(pos);
                 else n.add(pos);
                 return n;
-              })
+              }))
             }
           >
             <ToolIcon kind="flag" />
@@ -402,7 +411,10 @@ export function Runner({ sessionId }: { sessionId: number }) {
               type="button"
               className={`icon-btn${feedbackFor === pos ? " on" : ""}`}
               aria-expanded={feedbackFor === pos}
-              onClick={() => setFeedbackFor((p) => (p === pos ? null : pos))}
+              onClick={() => {
+                if (feedbackFor !== pos) track("feedback_open");
+                setFeedbackFor((p) => (p === pos ? null : pos));
+              }}
             >
               <ToolIcon kind="feedback" />
               <span className="tool-label">Feedback</span>
@@ -412,7 +424,10 @@ export function Runner({ sessionId }: { sessionId: number }) {
             type="button"
             className={`icon-btn${scratch ? " on" : ""}`}
             aria-pressed={scratch}
-            onClick={() => setScratch((v) => !v)}
+            onClick={() => {
+              if (!scratch) track("scratch_open");
+              setScratch((v) => !v);
+            }}
           >
             <ToolIcon kind="scratch" />
             <span className="tool-label">Scratch pad</span>
@@ -421,7 +436,10 @@ export function Runner({ sessionId }: { sessionId: number }) {
             <button
               type="button"
               className="icon-btn"
-              onClick={() => setScratchKey((k) => k + 1)}
+              onClick={() => {
+                track("scratch_clear");
+                setScratchKey((k) => k + 1);
+              }}
             >
               Clear
             </button>
@@ -436,7 +454,7 @@ export function Runner({ sessionId }: { sessionId: number }) {
             onLoad={() => !locked && startClock(current.position)}
             draggable={false}
           />
-          {scratch && <ScratchPad clearKey={scratchKey} />}
+          {scratch && <ScratchPad clearKey={scratchKey} onDraw={() => scratched.current.add(pos)} />}
         </div>
 
         {/* On wide screens this column sits beside the question, so nothing needs scrolling. */}
@@ -494,8 +512,8 @@ export function Runner({ sessionId }: { sessionId: number }) {
                     disabled={busy || locked}
                     onClick={() =>
                       isTest
-                        ? submit(c)
-                        : setPicks((m) => new Map(m).set(pos, c))
+                        ? (answers.has(pos) && answers.get(pos)?.choice !== c && bumpChange(pos), submit(c))
+                        : (picks.has(pos) && picks.get(pos) !== c && bumpChange(pos), setPicks((m) => new Map(m).set(pos, c)))
                     }
                   >
                     {c}

@@ -126,6 +126,9 @@ export const attempt = sqliteTable(
     timeMs: integer("time_ms"),
     hintUsed: integer("hint_used", { mode: "boolean" }).notNull().default(false),
     flagged: integer("flagged", { mode: "boolean" }).notNull().default(false),
+    // Usage stats: drew on the scratch pad for this question; how often the pick changed before Check.
+    scratchUsed: integer("scratch_used", { mode: "boolean" }).notNull().default(false),
+    pickChanges: integer("pick_changes").notNull().default(0),
     source: text("source", { enum: ["app", "paper"] }).notNull().default("app"),
     answeredAt: integer("answered_at").notNull(),
   },
@@ -197,3 +200,29 @@ export const appMeta = sqliteTable("app_meta", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
 });
+
+// Usage stats, counts only: how often a student used each feature on a day. No content, no times of day.
+export const usageCount = sqliteTable(
+  "usage_count",
+  {
+    profileId: integer("profile_id").notNull().references(() => profile.id, { onDelete: "cascade" }),
+    day: text("day").notNull(), // YYYY-MM-DD (Amsterdam)
+    key: text("key").notNull(),
+    n: integer("n").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.profileId, t.day, t.key] })],
+);
+
+// Which kind of device and browser a student used on a day: families only, never the full browser string or IP.
+export const usageDevice = sqliteTable(
+  "usage_device",
+  {
+    profileId: integer("profile_id").notNull().references(() => profile.id, { onDelete: "cascade" }),
+    day: text("day").notNull(),
+    browser: text("browser").notNull(),
+    os: text("os").notNull(),
+    device: text("device").notNull(),
+    visits: integer("visits").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.profileId, t.day, t.browser, t.os, t.device] })],
+);

@@ -1,3 +1,4 @@
+import { track } from "../usage";
 import { useEffect, useState } from "react";
 import { isKangaroo, KANGAROO_PAPER, type Insights, type Me, type Readiness, type Rewards, type SessionListItem } from "../../shared/types";
 import { api } from "../api";
@@ -44,6 +45,7 @@ export function StudentHome({ me }: { me: Me }) {
 
   const prefs = loadQuick(me.id, "smart");
   const play = async () => {
+    track("play");
     setBusy(true);
     try {
       go(`#/quiz/${await startQuick("smart", prefs, contest)}`);

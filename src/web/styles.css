@@ -3513,6 +3513,7 @@ img.me-avatar {
 }
 .pic-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
@@ -3718,4 +3719,20 @@ details.more > summary:hover {
     background: none !important;
     color: var(--ink) !important;
   }
+}
+
+/* Usage stats (parent) */
+.usage h3 {
+  margin: 16px 0 0;
+}
+.usage-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.usage-list {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
 }
