@@ -2,20 +2,20 @@ import { useState } from "react";
 import type { Me } from "../../shared/types";
 import { ContestSwitch } from "../components/ContestSwitch";
 import { LookPicker } from "../components/LookPicker";
+import { Face } from "../components/Face";
+import { PicturePicker } from "../components/PicturePicker";
 import { useContest } from "../contest";
 import { go } from "../format";
 import { Explorer } from "./Explorer";
 
 /** The student's own corner: theme, contest, feedback, and switching profile. */
-export function MePage({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
+export function MePage({ me, onSignOut, onMe }: { me: Me; onSignOut: () => void; onMe: (m: Me) => void }) {
   const [contest, setContest, contests] = useContest();
   const [browse, setBrowse] = useState(false);
   return (
     <div className="stack page-stack">
       <div className="me-head">
-        <span className="me-avatar" aria-hidden="true">
-          {me.avatar}
-        </span>
+        <Face avatar={me.avatar} photo={me.photo} className="me-avatar" />
         <h1>{me.nickname}</h1>
       </div>
       {contests.length > 1 && (
@@ -24,6 +24,7 @@ export function MePage({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
           <ContestSwitch value={contest} onChange={setContest} options={contests} />
         </section>
       )}
+      <PicturePicker me={me} onChange={(p) => onMe({ ...me, ...p })} />
       <LookPicker />
       <div className="row">
         <button type="button" className="btn" onClick={() => go("#/feedback")}>

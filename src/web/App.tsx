@@ -115,7 +115,7 @@ export function App() {
       else if (hash === "#/progress" && view.me.role === "student") body = <Progress />;
       else if (hash === "#/badges" && view.me.role === "student") body = <Badges />;
       else if (hash === "#/feedback" && view.me.role === "student") body = <FeedbackPage />;
-      else if (hash === "#/me" && view.me.role === "student") body = <MePage me={view.me} onSignOut={() => void signOut()} />;
+      else if (hash === "#/me" && view.me.role === "student") body = <MePage me={view.me} onSignOut={() => void signOut()} onMe={(me) => setView({ kind: "in", me })} />;
       else if (hash === "#/mistakes") body = <StartQuick key="m" mode="mistakes" />;
       else if (hash === "#/smart") body = <StartQuick key="s" mode="smart" />;
       else if (hash === "#/paper") body = <StartPaper />;

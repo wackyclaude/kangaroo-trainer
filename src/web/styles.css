@@ -3480,6 +3480,46 @@ body.calm {
   font-size: 3rem;
   line-height: 1;
 }
+img.me-avatar {
+  width: 64px;
+  height: 64px;
+}
+
+/* Profile pictures: an uploaded photo is a circle the size of the emoji it replaces. */
+.face-photo {
+  display: inline-block;
+  border-radius: 50%;
+  object-fit: cover;
+  vertical-align: middle;
+  background: var(--card);
+  border: var(--bw) solid var(--line);
+}
+.face-photo.bar-face,
+.face-photo.inline-face {
+  width: 1.6em;
+  height: 1.6em;
+}
+.face-photo.pic-current {
+  width: 56px;
+  height: 56px;
+}
+.face-emoji.pic-current {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+.pic-preview {
+  width: 112px;
+  height: 112px;
+}
+.pic-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.pic-head h2 {
+  margin: 0;
+}
 
 /* Yellow is for the main button only: selected options use ink. */
 .segmented button[aria-checked="true"] {

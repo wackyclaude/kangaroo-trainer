@@ -12,6 +12,9 @@ export const SESSION_LIMITS = {
   parent: { absoluteMs: 8 * 3600_000, idleMs: 30 * 60_000 },
 } as const;
 
+/** Where a profile's own picture is served; the version stops browsers showing an old one. */
+export const photoUrl = (p: { id: number; photoAt: number | null }) => (p.photoAt ? `/api/profiles/${p.id}/photo?v=${p.photoAt}` : null);
+
 const sha256 = (s: string) => crypto.createHash("sha256").update(s).digest("hex");
 
 export function createSession(db: Db, profileId: number, role: Role, now = Date.now()): string {
@@ -33,6 +36,8 @@ export interface SessionUser {
   role: Role;
   nickname: string;
   avatar: string;
+  /** URL of their own picture, or null for the emoji avatar. */
+  photo: string | null;
   grade: string | null;
   birthYear: number | null;
 }
@@ -62,6 +67,7 @@ export function readSession(db: Db, token: string | undefined, now = Date.now())
     role,
     nickname: row.p.nickname,
     avatar: row.p.avatar,
+    photo: photoUrl(row.p),
     grade: row.p.grade,
     birthYear: row.p.birthYear,
   };
