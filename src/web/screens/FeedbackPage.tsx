@@ -20,7 +20,7 @@ export function FeedbackPage() {
           ← Back
         </button>
         <h1>Feedback</h1>
-        <p className="muted">Ideas, problems or things you like: your parent reads every message. About one question? Use the 💬 button on that question.</p>
+        <p className="muted">Ideas, problems or things you like: the admin reads every message. About one question? Use the 💬 button on that question.</p>
       </div>
       <section className="panel stack">
         <FeedbackForm onSent={() => void load()} />

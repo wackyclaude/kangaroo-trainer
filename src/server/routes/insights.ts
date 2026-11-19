@@ -29,7 +29,7 @@ export async function insightRoutes(app: FastifyInstance, deps: { db: Db }): Pro
     return buildInsights(db, user.id, Date.now(), contestOf(req));
   });
 
-  // The parent can look at any student.
+  // The admin can look at any student.
   app.get("/api/insights/:profileId", async (req, reply) => {
     const user = requireUser(req, reply);
     if (!user) return;

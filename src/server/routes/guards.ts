@@ -19,7 +19,7 @@ export function requireParent(req: FastifyRequest, reply: FastifyReply): Session
   const u = requireUser(req, reply);
   if (!u) return undefined;
   if (u.role !== "parent") {
-    void reply.code(403).send({ error: "parent_only", message: "Only the parent can do this." });
+    void reply.code(403).send({ error: "parent_only", message: "Only the admin can do this." });
     return undefined;
   }
   return u;

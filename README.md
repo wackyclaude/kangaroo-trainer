@@ -17,7 +17,7 @@ A kid-friendly web app for practising the W4Kangoeroe **wizSMART** maths competi
 - **Fun:** Roo the kangaroo (an original drawing), stars, streaks, a weekly goal and badges. No comparison with other children.
 - **Themes:** each student picks Exercise book (Roo), Space (Nova, an original alien astronaut, with mission-patch badges) or Modern (clean and dark, no cartoons, line icons), in light or dark.
 - **Olympiad (round 1):** 8 multiple-choice + 4 exact-answer questions with a maths keypad, scored out of 36 and compared with each year's cutoff; five difficulty levels from how klas-1 students did, with a parent-set level range for short quizzes.
-- **Parent corner:** profiles with PINs, benchmarks, CSV/JSON export, printable papers with an answer sheet.
+- **Admin corner:** profiles with PINs, benchmarks, CSV/JSON export, printable papers with an answer sheet.
 - **Privacy:** no names, emails or photos; everything stays on your own machine.
 
 ## The question bank (not included)

@@ -22,7 +22,7 @@ export function Picker({ onPick }: { onPick: (p: ProfileCard) => void }) {
       {error && <div className="message" role="alert">{error}</div>}
       {profiles && students.length === 0 && (
         <p className="center muted" style={{ margin: "16px auto" }}>
-          No students yet. The parent can add them after signing in below.
+          No students yet. The admin can add them after signing in below.
         </p>
       )}
       <div className="sticker-wall">
@@ -32,7 +32,7 @@ export function Picker({ onPick }: { onPick: (p: ProfileCard) => void }) {
       </div>
       <div className="sticker-wall" style={{ marginTop: 40 }}>
         {parents.map((p) => (
-          <Sticker key={p.id} small avatar={p.avatar} name={`${p.nickname} (parent)`} tint={5} onClick={() => onPick(p)} />
+          <Sticker key={p.id} small avatar={p.avatar} name={`${p.nickname} (admin)`} tint={5} onClick={() => onPick(p)} />
         ))}
       </div>
     </main>

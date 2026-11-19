@@ -102,7 +102,7 @@ export function PicturePicker({ me, onChange }: { me: Me; onChange: (p: { avatar
         <>
           <div className="pic-upload stack">
             <h3>Use your own picture</h3>
-            <p className="muted">A drawing, your pet or something you like works great. Only you and your parent can see it.</p>
+            <p className="muted">A drawing, your pet or something you like works great. Only you and the admin can see it.</p>
             {preview ? (
               <div className="row">
                 <img className="face-photo pic-preview" src={preview} alt="Preview of your new picture" />

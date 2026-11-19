@@ -15,7 +15,7 @@ export function Setup({ onDone }: { onDone: () => void }) {
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
-    if (!/^\d{6,12}$/.test(pin)) return setError("The parent PIN needs 6 to 12 digits.");
+    if (!/^\d{6,12}$/.test(pin)) return setError("The admin PIN needs 6 to 12 digits.");
     if (pin !== pin2) return setError("The two PINs don't match.");
     setBusy(true);
     try {
@@ -32,7 +32,7 @@ export function Setup({ onDone }: { onDone: () => void }) {
     <main className="page">
       <TopBar />
       <form className="panel stack" onSubmit={submit} style={{ maxWidth: 640 }}>
-        <h1>Set up the parent profile</h1>
+        <h1>Set up the admin profile</h1>
         <p>
           You'll use this profile to add students, change settings and see everyone's progress. The setup code is in the
           server log (see the setup guide).
@@ -50,7 +50,7 @@ export function Setup({ onDone }: { onDone: () => void }) {
           <AvatarPicker value={avatar} onChange={setAvatar} />
         </div>
         <label className="field">
-          Parent PIN <span className="hint">6 to 12 digits. Keep it away from the kids.</span>
+          Admin PIN <span className="hint">6 to 12 digits. Keep it away from the kids.</span>
           <input type="password" inputMode="numeric" autoComplete="new-password" value={pin} onChange={(e) => setPin(e.target.value)} required />
         </label>
         <label className="field">
@@ -60,7 +60,7 @@ export function Setup({ onDone }: { onDone: () => void }) {
         {error && <div className="message" role="alert">{error}</div>}
         <div>
           <button className="btn primary" disabled={busy}>
-            Create parent profile
+            Create admin profile
           </button>
         </div>
       </form>

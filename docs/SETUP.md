@@ -57,7 +57,7 @@ Both `app` and `caddy` should say `running` (or `healthy`).
 docker compose logs app | grep FIRST-TIME
 ```
 
-You'll see a 6-digit code. You need it once, to create the parent profile.
+You'll see a 6-digit code. You need it once, to create the admin profile.
 
 ## 4. Trust the app's certificate on the Mac (one time)
 
@@ -74,8 +74,8 @@ Don't double-click the `.crt` file. On recent macOS versions that often fails wi
 2. To check: open **Keychain Access**, choose **login** on the left, search for **Caddy Local Authority** and open it. Under **Trust** it should say **Always Trust**.
 
 3. Open `https://localhost` in Safari. You should see the setup screen with no warning.
-4. Enter the setup code, a nickname, an avatar and a **6–12 digit parent PIN**. Keep this PIN to yourself.
-5. In **Parent corner**, tap **Add a student**: nickname, avatar, grade, birth year and a **4-digit PIN**.
+4. Enter the setup code, a nickname, an avatar and a **6–12 digit admin PIN**. Keep this PIN to yourself.
+5. In **Admin corner**, tap **Add a student**: nickname, avatar, grade, birth year and a **4-digit PIN**.
 
 ## 5. Set up the iPad (one time)
 
@@ -93,7 +93,7 @@ The iPad must be on the same Wi-Fi as the Mac, and the Mac must be awake.
 - **Stop:** `docker compose down` (in the `kt` folder). Your data stays.
 - **Monthly security refresh:** `docker compose build --pull`, then `docker compose up -d`. This fetches the latest patched base image even when the code hasn't changed.
 - **Update** after new code arrives: `git pull`, then `docker compose up -d --build`. The iPad app picks up the new version the next time it is opened (close it fully and reopen if it looks old).
-- **Olympiad:** put the Olympiad bank in `bank/olympiad/`, restart (`docker compose up -d`), then in the parent corner tick **Olympiad** for a student. The student home then shows a Kangaroo / Olympiad switch.
+- **Olympiad:** put the Olympiad bank in `bank/olympiad/`, restart (`docker compose up -d`), then in the admin corner tick **Olympiad** for a student. The student home then shows a Kangaroo / Olympiad switch.
 - **See what's happening:** `docker compose logs -f app` (Ctrl-C to stop watching).
 
 ## Backups and restore
@@ -113,8 +113,8 @@ The iPad must be on the same Wi-Fi as the Mac, and the Mac must be awake.
 - Only Caddy is reachable from the network; the app container has no open ports.
 - Never set up port forwarding on your router for this. The app is meant for the home network only.
 - Both containers run with almost no Linux permissions. The app runs as a normal user, and its disk is read-only apart from the data folders.
-- PINs are stored only as Argon2id hashes. 5 wrong PINs lock a profile (5 minutes for students, 15 for the parent).
-- The parent is signed out after 30 minutes of no activity.
+- PINs are stored only as Argon2id hashes. 5 wrong PINs lock a profile (5 minutes for students, 15 for the admin).
+- The admin is signed out after 30 minutes of no activity.
 - No analytics, nothing loaded from the internet, and the question bank never goes into git.
 
 ## If something goes wrong
@@ -127,4 +127,4 @@ The iPad must be on the same Wi-Fi as the Mac, and the Mac must be awake.
 | "Unable to import … Error: -25294" on the Mac | Use the `security add-trusted-cert` command in step 4 instead of double-clicking the certificate. |
 | Certificate warning on the Mac after step 4 | Quit Safari or Chrome fully (Cmd-Q) and open it again; browsers keep old certificate decisions until restarted. |
 | Ports 80/443 already in use | Another web server is running on the Mac. Stop it, or ask Claude to switch ports. |
-| Forgot the parent PIN | In the `kt` folder: `docker compose exec app /nodejs/bin/node dist/server/server/tools/reset-parent-pin.js NEWPIN` (6–12 digits). |
+| Forgot the admin PIN | In the `kt` folder: `docker compose exec app /nodejs/bin/node dist/server/server/tools/reset-parent-pin.js NEWPIN` (6–12 digits). |
