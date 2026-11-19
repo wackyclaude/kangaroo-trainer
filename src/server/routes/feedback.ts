@@ -1,4 +1,5 @@
 // Feedback from students to the parent: about one question or about the app, with the parent's reply.
+import { photoUrl } from "../auth/session.js";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { and, count, desc, eq, gt, isNotNull, isNull } from "drizzle-orm";
@@ -36,6 +37,7 @@ export async function feedbackRoutes(app: FastifyInstance, deps: { db: Db }): Pr
     profileId: r.f.profileId,
     nickname: r.p.nickname,
     avatar: r.p.avatar,
+    photo: photoUrl(r.p),
     kind: r.f.kind as FeedbackKind,
     message: r.f.message,
     createdAt: r.f.createdAt,

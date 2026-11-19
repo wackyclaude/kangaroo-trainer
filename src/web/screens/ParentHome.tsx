@@ -1,3 +1,4 @@
+import { Face } from "../components/Face";
 import { useEffect, useState, type FormEvent } from "react";
 import { MAX_STUDENTS, type Contest, type Me, type OlympiadSettings, type Readiness, type Role, type SessionListItem } from "../../shared/types";
 import { ContestToggles, OlympiadSettingsForm, type SavedOlympiad } from "../components/OlympiadSettings";
@@ -13,6 +14,7 @@ interface AdminProfile {
   id: number;
   nickname: string;
   avatar: string;
+  photo: string | null;
   role: Role;
   grade: string | null;
   birthYear: number | null;
@@ -70,6 +72,17 @@ export function ParentHome({ me }: { me: Me }) {
     }
   };
 
+  const removePhoto = async (p: AdminProfile) => {
+    if (!window.confirm(`Remove ${p.nickname}'s own picture? Their avatar comes back.`)) return;
+    try {
+      await api.del(`/api/profiles/${p.id}/photo`);
+      setMsg({ ok: true, text: `Removed ${p.nickname}'s picture.` });
+      void load();
+    } catch (e) {
+      setMsg({ ok: false, text: messageOf(e) });
+    }
+  };
+
   const remove = async (p: AdminProfile) => {
     if (!window.confirm(`Delete ${p.nickname} and all of ${p.nickname}'s practice history? This can't be undone.`)) return;
     try {
@@ -114,7 +127,7 @@ export function ParentHome({ me }: { me: Me }) {
             {people.map((p) => (
               <tr key={p.id}>
                 <td>
-                  <span aria-hidden="true">{p.avatar}</span> <strong>{p.nickname}</strong>
+                  <Face avatar={p.avatar} photo={p.photo} className="inline-face" /> <strong>{p.nickname}</strong>
                   {p.role === "parent" && <span className="muted"> (parent)</span>}
                   {p.locked && <span className="locked-note"> locked</span>}
                 </td>
@@ -125,6 +138,11 @@ export function ParentHome({ me }: { me: Me }) {
                   <button type="button" className="btn quiet" onClick={() => resetPin(p)}>
                     {p.locked ? "Unlock and set PIN" : "Set new PIN"}
                   </button>
+                  {p.photo && (
+                    <button type="button" className="btn quiet" onClick={() => void removePhoto(p)}>
+                      Remove picture
+                    </button>
+                  )}
                   {p.role === "student" && (
                     <button type="button" className="btn quiet" onClick={() => go(`#/insights/${p.id}`)}>
                       Progress

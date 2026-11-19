@@ -22,12 +22,14 @@ export const TIER_TEXT: Record<Tier, string> = {
 
 /** Avatars in groups for the picker (the first ten are the originals, so older profiles stay valid). */
 export const AVATAR_GROUPS = {
-  Animals: ["🦘", "🦊", "🦉", "🐼", "🐸", "🐧", "🐯", "🐙", "🦄", "🐢", "🐱", "🐶", "🐺", "🦁", "🐨", "🦝", "🦦", "🦥", "🐬", "🦈", "🦩", "🦋", "🦖", "🐉"],
-  Characters: ["👽", "🤖", "👾", "👻", "🥷", "🧙", "🦸", "🧝", "😎", "🤓", "🤠", "🤩"],
+  Animals: ["🦘", "🦊", "🦉", "🐼", "🐸", "🐧", "🐯", "🐙", "🦄", "🐢", "🐱", "🐶", "🐺", "🦁", "🐨", "🦝", "🦦", "🦥", "🐬", "🦈", "🦩", "🦋", "🦖", "🐉", "🐻", "🐰", "🐹", "🦔", "🦜", "🐝", "🐞", "🦓", "🦒", "🐘", "🦚", "🦭", "🐳", "🦀", "🐌", "🦕"],
+  Characters: ["👽", "🤖", "👾", "👻", "🥷", "🧙", "🦸", "🧝", "😎", "🤓", "🤠", "🤩", "🧛", "🧜", "🧚", "🦹", "🧞", "🥸", "😺", "🤯", "🫡", "🙃"],
   "Cool stuff": ["🚀", "🪐", "🌙", "⭐", "⚡", "🔥", "🌈", "💎", "👑", "🎮", "🎧", "🎸", "🛹", "🏀", "⚽", "🎨", "📸", "🍕", "🍩", "🧋", "🍓", "🌵", "🍄", "🌸", "🧁"],
+  "Sports & hobbies": ["🏐", "🎾", "🏓", "🏸", "⛸️", "🏂", "🚴", "🏊", "🧗", "🥋", "♟️", "🎲", "🧩", "🎹", "🥁", "🎻", "📚", "🔭", "🔬", "🧪"],
+  "Nature & space": ["🌍", "☄️", "🌋", "🏔️", "🌊", "🌻", "🍀", "🌴", "❄️", "🌞", "🪸", "🌌", "🍉", "🥑", "🍿", "🧇", "🍦", "🍪"],
 } as const;
-export const AVATARS = [...AVATAR_GROUPS.Animals, ...AVATAR_GROUPS.Characters, ...AVATAR_GROUPS["Cool stuff"]] as const;
-export type Avatar = (typeof AVATARS)[number];
+export const AVATARS = Object.values(AVATAR_GROUPS).flat() as unknown as readonly [string, ...string[]];
+export type Avatar = (typeof AVATAR_GROUPS)[keyof typeof AVATAR_GROUPS][number];
 
 export const MAX_STUDENTS = 20;
 
@@ -45,6 +47,8 @@ export interface Me {
   id: number;
   nickname: string;
   avatar: string;
+  /** Their own uploaded picture (URL), shown instead of the emoji; null = emoji. */
+  photo: string | null;
   role: Role;
   grade: string | null;
   birthYear: number | null;
@@ -664,6 +668,7 @@ export interface FeedbackItem {
   profileId: number;
   nickname: string;
   avatar: string;
+  photo: string | null;
   kind: FeedbackKind;
   message: string;
   createdAt: number;

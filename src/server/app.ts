@@ -40,7 +40,8 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'"],
         styleSrc: ["'self'"],
-        imgSrc: ["'self'", "data:"],
+        // blob: lets the browser open a picture the student picked, to crop it before uploading.
+        imgSrc: ["'self'", "data:", "blob:"],
         fontSrc: ["'self'"],
         connectSrc: ["'self'"],
         objectSrc: ["'none'"],

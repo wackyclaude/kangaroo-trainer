@@ -2,11 +2,12 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { and, count, eq } from "drizzle-orm";
 import type { Db } from "../db/client.js";
-import { profile } from "../db/schema.js";
+import { profile, profilePhoto } from "../db/schema.js";
 import { hashPin, isValidPin } from "../auth/pin.js";
-import { endAllSessionsFor } from "../auth/session.js";
+import { endAllSessionsFor, photoUrl } from "../auth/session.js";
+import { cleanPhoto, PHOTO_MAX_BYTES, PhotoError } from "../auth/photo.js";
 import { AVATARS, MAX_STUDENTS } from "../../shared/types.js";
-import { requireParent } from "./guards.js";
+import { requireParent, requireUser } from "./guards.js";
 import { contestsOf, olympiadOf } from "../practice/contest.js";
 
 const Nickname = z.string().trim().min(1).max(20).regex(/^[\p{L}\p{N} _'-]+$/u);
@@ -119,6 +120,7 @@ export async function profileRoutes(app: FastifyInstance, deps: { db: Db }): Pro
         id: p.id,
         nickname: p.nickname,
         avatar: p.avatar,
+        photo: photoUrl(p),
         role: p.role,
         grade: p.grade,
         birthYear: p.birthYear,
@@ -126,5 +128,84 @@ export async function profileRoutes(app: FastifyInstance, deps: { db: Db }): Pro
         contests: contestsOf(p),
         olympiad: olympiadOf(p),
       }));
+  });
+
+  // ---- Profile pictures ----
+
+  // Anyone signed in picks their own emoji avatar. Picking one also removes an uploaded picture.
+  const AvatarBody = z.object({ avatar: z.enum(AVATARS) }).strict();
+  app.put("/api/me/avatar", async (req, reply) => {
+    const u = requireUser(req, reply);
+    if (!u) return;
+    const body = AvatarBody.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: "invalid", message: "Pick one of the avatars." });
+    db.transaction((tx) => {
+      tx.delete(profilePhoto).where(eq(profilePhoto.profileId, u.id)).run();
+      tx.update(profile).set({ avatar: body.data.avatar, photoAt: null }).where(eq(profile.id, u.id)).run();
+    });
+    return { avatar: body.data.avatar, photo: null };
+  });
+
+  // Anyone signed in uploads their own picture: a 256×256 PNG, cleaned and re-encoded here.
+  const PhotoBody = z.object({ image: z.string().max(Math.ceil((PHOTO_MAX_BYTES * 4) / 3) + 64) }).strict();
+  app.put(
+    "/api/me/photo",
+    { bodyLimit: 1024 * 1024, config: { rateLimit: { max: 10, timeWindow: "1 minute" } } },
+    async (req, reply) => {
+      const u = requireUser(req, reply);
+      if (!u) return;
+      const body = PhotoBody.safeParse(req.body);
+      if (!body.success) return reply.code(400).send({ error: "invalid", message: "That picture couldn't be read." });
+      let png: Buffer;
+      try {
+        png = cleanPhoto(body.data.image);
+      } catch (e) {
+        if (e instanceof PhotoError) return reply.code(400).send({ error: "bad_picture", message: e.message });
+        throw e;
+      }
+      const at = Date.now();
+      db.transaction((tx) => {
+        tx.insert(profilePhoto).values({ profileId: u.id, png }).onConflictDoUpdate({ target: profilePhoto.profileId, set: { png } }).run();
+        tx.update(profile).set({ photoAt: at }).where(eq(profile.id, u.id)).run();
+      });
+      return { photo: photoUrl({ id: u.id, photoAt: at }) };
+    },
+  );
+
+  // Removes a picture: your own, or (parent) a student's.
+  const removePhoto = (id: number) =>
+    db.transaction((tx) => {
+      tx.delete(profilePhoto).where(eq(profilePhoto.profileId, id)).run();
+      tx.update(profile).set({ photoAt: null }).where(eq(profile.id, id)).run();
+    });
+  app.delete("/api/me/photo", async (req, reply) => {
+    const u = requireUser(req, reply);
+    if (!u) return;
+    removePhoto(u.id);
+    return { photo: null };
+  });
+  app.delete("/api/profiles/:id/photo", async (req, reply) => {
+    if (!requireParent(req, reply)) return;
+    const params = idParam.safeParse(req.params);
+    if (!params.success) return reply.code(400).send({ error: "invalid", message: "Unknown profile." });
+    removePhoto(params.data.id);
+    return { photo: null };
+  });
+
+  // The picture itself: only for that student and the parent, never before signing in.
+  app.get("/api/profiles/:id/photo", async (req, reply) => {
+    const u = requireUser(req, reply);
+    if (!u) return;
+    const params = idParam.safeParse(req.params);
+    if (!params.success) return reply.code(400).send({ error: "invalid", message: "Unknown profile." });
+    if (u.role !== "parent" && u.id !== params.data.id) return reply.code(403).send({ error: "not_yours", message: "That picture is private." });
+    const row = db.select().from(profilePhoto).where(eq(profilePhoto.profileId, params.data.id)).get();
+    if (!row) return reply.code(404).send({ error: "no_picture", message: "No picture." });
+    return reply
+      .header("Cache-Control", "private, max-age=31536000, immutable")
+      .header("X-Content-Type-Options", "nosniff")
+      .header("Content-Security-Policy", "default-src 'none'")
+      .type("image/png")
+      .send(row.png);
   });
 }

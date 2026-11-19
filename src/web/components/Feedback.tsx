@@ -1,3 +1,4 @@
+import { Face } from "./Face";
 import { useContext, useId, useState, type FormEvent } from "react";
 import { APP_FEEDBACK, FEEDBACK_LABEL, FEEDBACK_MAX_CHARS, QUESTION_FEEDBACK, type FeedbackItem, type FeedbackKind } from "../../shared/types";
 import { api, messageOf } from "../api";
@@ -108,7 +109,7 @@ export function FeedbackEntry({ f, showWho }: { f: FeedbackItem; showWho?: boole
       <div className="fb-head">
         {showWho && (
           <strong>
-            <span aria-hidden="true">{f.avatar}</span> {f.nickname}
+            <Face avatar={f.avatar} photo={f.photo} className="inline-face" /> {f.nickname}
           </strong>
         )}
         <span className="chip outline">{FEEDBACK_LABEL[f.kind]}</span>

@@ -1,5 +1,6 @@
 import { Mascot } from "./Mascot";
 import { MASCOT_SKINS, type Me } from "../../shared/types";
+import { Face } from "./Face";
 import { useSkin } from "../skin";
 
 const TABS = [
@@ -35,7 +36,7 @@ export function TopBar({ me, hash = "#/", onSignOut }: { me?: Me | null; hash?: 
       )}
       {me && !student && (
         <div className="row">
-          <span aria-hidden="true">{me.avatar}</span>
+          <Face avatar={me.avatar} photo={me.photo} className="bar-face" />
           <strong>{me.nickname}</strong>
           <button type="button" className="btn quiet" onClick={onSignOut}>
             Switch profile

@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real, primaryKey, index, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, primaryKey, index, uniqueIndex, blob } from "drizzle-orm/sqlite-core";
 
 export const profile = sqliteTable(
   "profile",
@@ -25,10 +25,20 @@ export const profile = sqliteTable(
     appearance: text("appearance"),
     accent: text("accent"),
     compareGroup: text("compare_group"),
+    // When the student last uploaded their own picture (epoch ms); null = they use the emoji avatar.
+    photoAt: integer("photo_at"),
     createdAt: integer("created_at").notNull(),
   },
   (t) => [uniqueIndex("profile_nickname_uq").on(t.nickname)],
 );
+
+// A student's own profile picture: a 256×256 PNG, re-encoded on the server so no camera data (EXIF, GPS) is kept.
+export const profilePhoto = sqliteTable("profile_photo", {
+  profileId: integer("profile_id")
+    .primaryKey()
+    .references(() => profile.id, { onDelete: "cascade" }),
+  png: blob("png", { mode: "buffer" }).notNull(),
+});
 
 // Sign-in sessions. Only a SHA-256 hash of the cookie token is stored.
 export const loginSession = sqliteTable(
