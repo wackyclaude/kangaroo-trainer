@@ -22,6 +22,9 @@ export const profile = sqliteTable(
     olympiad: text("olympiad", { mode: "json" }).$type<Record<string, unknown> | null>(),
     // The look the student picked (classic, space, modern) and light/dark; null = classic, follow the device.
     theme: text("theme"),
+    // Quiz buddy: roo | nova | pixel | kit | none (null = the theme decides); mode lively | quiet | off (null = lively).
+    buddy: text("buddy"),
+    buddyMode: text("buddy_mode"),
     appearance: text("appearance"),
     accent: text("accent"),
     compareGroup: text("compare_group"),

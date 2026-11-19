@@ -3736,3 +3736,210 @@ details.more > summary:hover {
   display: grid;
   gap: 4px;
 }
+
+/* ---------- Quiz buddy reactions ---------- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+/* Sits in the bottom corner, above the phone tab bar; clicks pass straight through. */
+.buddy-pop {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 40;
+  pointer-events: none;
+}
+@media (max-width: 720px) {
+  .buddy-pop {
+    right: 8px;
+    bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+  .buddy-bubble {
+    max-width: 190px;
+    font-size: 0.9375rem;
+  }
+}
+/* Bubble on the left, buddy on the right, so a jump never covers the words. */
+.buddy-pop-inner {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 6px;
+  animation: buddy-in 0.25s ease-out both;
+}
+.buddy-bubble {
+  max-width: 240px;
+  margin-bottom: 56px;
+  background: var(--card);
+  color: var(--ink);
+  border: var(--bw) solid var(--line);
+  border-radius: 16px 16px 4px 16px;
+  padding: 10px 14px;
+  order: -1;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.3;
+  box-shadow: 3px 3px 0 var(--lift-soft);
+}
+.buddy-body {
+  display: block;
+  transform-origin: 50% 100%;
+}
+.buddy-body svg {
+  display: block;
+}
+.buddy-burst {
+  position: absolute;
+  right: -20px;
+  bottom: 10px;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 194, 61, 0.6) 0%, rgba(255, 194, 61, 0.15) 45%, rgba(255, 194, 61, 0) 70%);
+  animation: buddy-burst 1.2s ease-out both;
+}
+.move-nod .buddy-body {
+  animation: buddy-nod 0.6s ease-in-out;
+}
+.move-hop .buddy-body {
+  animation: buddy-hop 0.8s ease-out;
+}
+.move-bigjump .buddy-body {
+  animation: buddy-bigjump 1.2s cubic-bezier(0.3, 0.7, 0.4, 1);
+  transform-origin: 50% 60%;
+}
+.move-sway .buddy-body {
+  animation: buddy-sway 1.4s ease-in-out;
+}
+.move-bob .buddy-body {
+  animation: buddy-bob 1.6s ease-in-out infinite;
+}
+.move-wave .buddy-body {
+  animation: buddy-hop 0.9s ease-out;
+}
+@keyframes buddy-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+@keyframes buddy-nod {
+  50% {
+    transform: rotate(-6deg) translateY(2px);
+  }
+}
+@keyframes buddy-hop {
+  15% {
+    transform: translateY(3px) scale(1.06, 0.94);
+  }
+  45% {
+    transform: translateY(-24px);
+  }
+  80% {
+    transform: translateY(0) scale(1.04, 0.96);
+  }
+}
+@keyframes buddy-bigjump {
+  10% {
+    transform: translateY(5px) scale(1.12, 0.86);
+  }
+  40% {
+    transform: translateY(-60px) rotate(-180deg);
+  }
+  65% {
+    transform: translateY(-40px) rotate(-360deg);
+  }
+  85% {
+    transform: translateY(0) rotate(-360deg) scale(1.1, 0.9);
+  }
+  100% {
+    transform: rotate(-360deg);
+  }
+}
+@keyframes buddy-burst {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+@keyframes buddy-sway {
+  25% {
+    transform: rotate(-5deg);
+  }
+  75% {
+    transform: rotate(4deg);
+  }
+}
+@keyframes buddy-bob {
+  50% {
+    transform: translateY(-8px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .buddy-pop-inner,
+  .buddy-body,
+  .buddy-burst {
+    animation: none !important;
+  }
+}
+
+/* Me page: buddy picker */
+.buddy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 12px;
+}
+.buddy-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 8px 12px;
+  min-height: 44px;
+  background: var(--card);
+  color: var(--ink);
+  border: var(--bw) solid var(--line);
+  border-radius: 18px;
+  cursor: pointer;
+  font: inherit;
+}
+.buddy-choice[aria-checked="true"] {
+  border-color: var(--sky);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--sky) 30%, transparent);
+}
+.buddy-choice .buddy-face {
+  display: flex;
+  align-items: flex-end;
+  height: 92px;
+}
+.buddy-choice .none-face {
+  font-family: var(--display);
+  font-size: 2rem;
+  color: var(--ink-soft);
+  align-items: center;
+}
+.buddy-choice strong {
+  font-family: var(--display);
+  font-size: 1.05rem;
+}
+.buddy-choice small {
+  color: var(--ink-soft);
+}

@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { profileSettings } from "../practice/contest.js";
-import { ACCENTS, APPEARANCES, DEFAULT_OLYMPIAD, SKINS, type Accent, type Appearance, type Skin } from "../../shared/types.js";
+import { ACCENTS, APPEARANCES, DEFAULT_OLYMPIAD, SKINS, type Accent, type Appearance, type Skin, BUDDIES, BUDDY_MODES, buddyModeOf, buddyOf } from "../../shared/types.js";
 
 /** Stored values are checked again on the way out, so an odd value can't break the app. */
 export function lookOf(row: { theme: string | null; appearance: string | null; accent?: string | null } | undefined): { theme: Skin; appearance: Appearance; accent: Accent } {
@@ -128,8 +128,9 @@ export async function authRoutes(app: FastifyInstance, deps: AuthDeps): Promise<
     const u = requireUser(req, reply);
     if (!u) return;
     const extra = profileSettings(deps.db, u.id);
-    const look = lookOf(deps.db.select({ theme: profile.theme, appearance: profile.appearance, accent: profile.accent }).from(profile).where(eq(profile.id, u.id)).get());
-    return { ...u, contests: extra?.contests ?? ["kangaroo"], olympiad: extra?.olympiad ?? DEFAULT_OLYMPIAD, ...look };
+    const row = deps.db.select({ theme: profile.theme, appearance: profile.appearance, accent: profile.accent, buddy: profile.buddy, buddyMode: profile.buddyMode }).from(profile).where(eq(profile.id, u.id)).get();
+    const look = lookOf(row);
+    return { ...u, contests: extra?.contests ?? ["kangaroo"], olympiad: extra?.olympiad ?? DEFAULT_OLYMPIAD, ...look, buddy: buddyOf(row?.buddy, look.theme), buddyMode: buddyModeOf(row?.buddyMode) };
   });
 
   // Anyone signed in picks their own look. Nothing else on the profile changes.
@@ -139,6 +140,17 @@ export async function authRoutes(app: FastifyInstance, deps: AuthDeps): Promise<
     if (!u) return;
     const body = Look.safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: "invalid", message: "Pick one of the themes." });
+    deps.db.update(profile).set(body.data).where(eq(profile.id, u.id)).run();
+    return body.data;
+  });
+
+  // Anyone signed in picks their own quiz buddy and how chatty it is.
+  const BuddyBody = z.object({ buddy: z.enum(BUDDIES), buddyMode: z.enum(BUDDY_MODES) }).strict();
+  app.put("/api/me/buddy", async (req, reply) => {
+    const u = requireUser(req, reply);
+    if (!u) return;
+    const body = BuddyBody.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: "invalid", message: "Pick a buddy and how chatty it is." });
     deps.db.update(profile).set(body.data).where(eq(profile.id, u.id)).run();
     return body.data;
   });

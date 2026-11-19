@@ -5,6 +5,7 @@ import { ContestSwitch } from "../components/ContestSwitch";
 import { LookPicker } from "../components/LookPicker";
 import { Face } from "../components/Face";
 import { PicturePicker } from "../components/PicturePicker";
+import { BuddyPicker } from "../components/BuddyPicker";
 import { useContest } from "../contest";
 import { go } from "../format";
 import { Explorer } from "./Explorer";
@@ -26,6 +27,7 @@ export function MePage({ me, onSignOut, onMe }: { me: Me; onSignOut: () => void;
         </section>
       )}
       <PicturePicker me={me} onChange={(p) => onMe({ ...me, ...p })} />
+      {me.role === "student" && <BuddyPicker me={me} onChange={(p) => onMe({ ...me, ...p })} />}
       <LookPicker />
       <div className="row">
         <button type="button" className="btn" onClick={() => go("#/feedback")}>
