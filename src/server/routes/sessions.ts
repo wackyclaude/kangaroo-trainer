@@ -95,6 +95,8 @@ const AnswerBody = z.object({
   timeMs: z.number().int().min(0).max(3 * 3600_000),
   hintUsed: z.boolean().default(false),
   flagged: z.boolean().default(false),
+  scratchUsed: z.boolean().default(false),
+  pickChanges: z.number().int().min(0).max(100).default(0),
 });
 
 type SessionRow = typeof practiceSession.$inferSelect;
@@ -384,6 +386,8 @@ export async function sessionRoutes(app: FastifyInstance, deps: { db: Db }): Pro
         timeMs: body.data.timeMs,
         hintUsed: body.data.hintUsed,
         flagged: body.data.flagged,
+        scratchUsed: body.data.scratchUsed,
+        pickChanges: body.data.pickChanges,
         answeredAt: Date.now(),
       })
       .run();

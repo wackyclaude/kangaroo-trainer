@@ -1,3 +1,4 @@
+import { track } from "../usage";
 import { useState } from "react";
 import { ACCENT_NAMES, ACCENTS, DARK_ONLY_SKINS, SKIN_NAMES, SKINS, type Accent, type Appearance, type Skin } from "../../shared/types";
 import { api, messageOf } from "../api";
@@ -24,6 +25,7 @@ export function LookPicker() {
     setError("");
     try {
       await api.put("/api/me/look", { theme, appearance, accent });
+      track("theme_change");
     } catch (e) {
       setLook(before);
       setError(messageOf(e));

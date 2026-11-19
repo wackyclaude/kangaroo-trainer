@@ -679,3 +679,61 @@ export interface FeedbackItem {
   replySeenAt: number | null;
   doneAt: number | null;
 }
+
+// ---- Usage stats (counts only, kept on the family's own server) ----
+
+/** Features the app counts, per student per day. Nothing about what was drawn, typed or written. */
+export const USAGE_KEYS = [
+  "play",
+  "hint",
+  "flag",
+  "scratch_open",
+  "scratch_clear",
+  "feedback_open",
+  "results_list",
+  "explorer_open",
+  "print_open",
+  "theme_change",
+  "contest_switch",
+  "picture_change",
+] as const;
+export type UsageKey = (typeof USAGE_KEYS)[number];
+export const USAGE_LABEL: Record<UsageKey, string> = {
+  play: "Tapped Play",
+  hint: "Opened a hint",
+  flag: "Flagged a question",
+  scratch_open: "Opened the scratch pad",
+  scratch_clear: "Cleared the scratch pad",
+  feedback_open: "Opened feedback",
+  results_list: "Looked through results",
+  explorer_open: "Browsed all questions",
+  print_open: "Printed a paper",
+  theme_change: "Changed theme",
+  contest_switch: "Switched contest",
+  picture_change: "Changed picture",
+};
+export const USAGE_DEVICES = ["phone", "tablet", "computer"] as const;
+export type UsageDevice = (typeof USAGE_DEVICES)[number];
+/** How many days of usage stats are kept; older days are deleted. */
+export const USAGE_KEEP_DAYS = 400;
+
+export interface UsageReport {
+  days: number;
+  activeDays: number;
+  answers: number;
+  /** Seconds per question: middle value, overall and per tier. */
+  medianSeconds: number | null;
+  byTier: { tier: string; answers: number; medianSeconds: number | null; right: number }[];
+  /** Share of answers in under 15 seconds, and over 5 minutes. */
+  quick: number;
+  slow: number;
+  /** How often each option was the final pick (blank = skipped). */
+  picks: { option: string; share: number }[];
+  /** Answers where the pick changed before Check, and how often those ended right. */
+  changed: { share: number; right: number | null };
+  /** Share of answers with a hint, and with drawing on the scratch pad. */
+  hintShare: number;
+  scratchShare: number;
+  features: { key: UsageKey; label: string; count: number }[];
+  devices: { browser: string; os: string; device: string; visits: number }[];
+}

@@ -1,3 +1,4 @@
+import { track } from "../usage";
 import { useContext, useEffect, useState } from "react";
 import type { PaperBenchmark, ResultRow, SessionResults } from "../../shared/types";
 import { fmtAverage } from "../../shared/benchmarks";
@@ -113,7 +114,7 @@ export function Results({ sessionId }: { sessionId: number }) {
           </button>
         )}
         <div className="row hero-links">
-          <button type="button" className="btn quiet" aria-expanded={showList} onClick={() => setListOpen(!showList)}>
+          <button type="button" className="btn quiet" aria-expanded={showList} onClick={() => (!showList && track("results_list"), setListOpen(!showList))}>
             {showList ? "Hide the questions" : "See all questions"}
           </button>
           {student && (

@@ -1,3 +1,4 @@
+import { usageRoutes } from "./routes/usage.js";
 import fs from "node:fs";
 import path from "node:path";
 import Fastify, { type FastifyInstance } from "fastify";
@@ -95,6 +96,7 @@ export async function buildApp(opts: AppOptions): Promise<FastifyInstance> {
   await sessionRoutes(app, { db: opts.db });
   await insightRoutes(app, { db: opts.db });
   await feedbackRoutes(app, { db: opts.db });
+  await usageRoutes(app, { db: opts.db });
 
   // The web app (built by Vite). Any unknown non-API path gets index.html.
   const hasWeb = fs.existsSync(path.join(opts.webDir, "index.html"));

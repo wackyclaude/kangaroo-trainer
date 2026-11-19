@@ -1,3 +1,4 @@
+import { track } from "../usage";
 import { useState } from "react";
 import type { Me } from "../../shared/types";
 import { ContestSwitch } from "../components/ContestSwitch";
@@ -30,7 +31,7 @@ export function MePage({ me, onSignOut, onMe }: { me: Me; onSignOut: () => void;
         <button type="button" className="btn" onClick={() => go("#/feedback")}>
           Feedback for my parent
         </button>
-        <button type="button" className="btn" aria-expanded={browse} onClick={() => setBrowse((b) => !b)}>
+        <button type="button" className="btn" aria-expanded={browse} onClick={() => (!browse && track("explorer_open"), setBrowse((b) => !b))}>
           Browse all the questions
         </button>
         <button type="button" className="btn" onClick={onSignOut}>
@@ -38,6 +39,9 @@ export function MePage({ me, onSignOut, onMe }: { me: Me; onSignOut: () => void;
         </button>
       </div>
       {browse && <Explorer />}
+      <p className="muted small-line">
+        The app counts which buttons you use and how long questions take, so your parent can see what helps. It never keeps your drawings or anything you type.
+      </p>
     </div>
   );
 }

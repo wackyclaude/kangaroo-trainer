@@ -1,3 +1,4 @@
+import { trackVisit } from "./usage";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Me, ProfileCard } from "../shared/types";
 import { api, ApiFailure, messageOf } from "./api";
@@ -55,6 +56,7 @@ export function App() {
       if (status.needsSetup) return setView({ kind: "setup" });
       try {
         const me = await api.get<Me>("/api/me");
+        if (me.role === "student") trackVisit();
         setView({ kind: "in", me });
       } catch (e) {
         if (e instanceof ApiFailure && e.status === 401) setView({ kind: "pick" });

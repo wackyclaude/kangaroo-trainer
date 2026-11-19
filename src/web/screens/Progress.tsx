@@ -7,6 +7,7 @@ import { api, messageOf } from "../api";
 import { AreaBars } from "../components/AreaBars";
 import { RewardStrip } from "../components/RewardStrip";
 import { Segmented } from "../components/Segmented";
+import { UsagePanel } from "../components/UsagePanel";
 import { MascotSays } from "../components/Mascot";
 import { focusColor, focusName, go, minutes, when } from "../format";
 
@@ -21,7 +22,7 @@ export function Progress({ profileId, asParent }: { profileId?: number; asParent
   const [parentPick, setParentPick] = useState<Contest>("kangaroo");
   const contest = asParent ? parentPick : mine;
   const [widened, setWidened] = useState("");
-  const [tab, setTab] = useState<"topics" | "levels" | "papers">("topics");
+  const [tab, setTab] = useState<"topics" | "levels" | "papers" | "usage">("topics");
 
   const load = () => api.get<Insights>(withContest(profileId ? `/api/insights/${profileId}` : "/api/insights", contest)).then(setIns, (e) => setError(messageOf(e)));
   useEffect(() => {
@@ -155,8 +156,11 @@ export function Progress({ profileId, asParent }: { profileId?: number; asParent
           { value: "topics", label: "Topics" },
           { value: "levels", label: "Levels" },
           { value: "papers", label: "Papers" },
+          ...(asParent ? [{ value: "usage" as const, label: "Usage" }] : []),
         ]}
       />
+
+      {tab === "usage" && asParent && profileId && <UsagePanel profileId={profileId} name={ins.nickname} />}
 
       {tab === "papers" && !ins.vsAverage?.papers.length && !ins.olympiad?.papers.length && (
         <p className="muted">No full papers yet. Do one to see how it compares with the real contest.</p>

@@ -1,3 +1,4 @@
+import { track } from "../usage";
 import { useEffect, useState } from "react";
 import { CHOICES, SCORING, type Me, type PaperKeyRow, type SessionState } from "../../shared/types";
 import { api, messageOf } from "../api";
@@ -11,6 +12,10 @@ export function Print({ sessionId, me }: { sessionId: number; me: Me }) {
   const [error, setError] = useState("");
   const [loaded, setLoaded] = useState(0);
   const [waited, setWaited] = useState(false);
+
+  useEffect(() => {
+    if (me.role === "student") track("print_open");
+  }, [me.role]);
 
   // Never block printing for long if a picture doesn't report back.
   useEffect(() => {
