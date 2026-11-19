@@ -622,6 +622,8 @@ export interface Readiness {
     chosen: boolean;
     windowStart: string;
     windowEnd: string;
+    /** Kangaroo: the earliest day the admin may set (1 September; some schools hold it early). */
+    earliest?: string;
     daysLeft: number;
     /** countdown = before the day; today; open = window open, school day not set and passed;
      *  done = the chosen day has passed (results come in mid-May). */
