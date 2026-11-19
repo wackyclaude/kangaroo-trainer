@@ -16,6 +16,9 @@ export function contestWindow(year: number): { start: string; end: string } {
   return { start: `${year}-03-${String(day).padStart(2, "0")}`, end: `${year}-03-31` };
 }
 
+/** The first day the school's contest day can be set to: 1 September before the March contest. */
+export const schoolYearStart = (contestYear: number) => `${contestYear - 1}-09-01`;
+
 const daysBetween = (from: string, to: string) => Math.round((Date.parse(`${to}T12:00:00Z`) - Date.parse(`${from}T12:00:00Z`)) / 86_400_000);
 
 /** Which contest to count down to, given today (home time zone) and the school's day if the parent set one. */
@@ -23,12 +26,14 @@ export function contestFor(today: string, chosen: string | null): Readiness["con
   let year = Number(today.slice(0, 4));
   if (today > `${year}-03-31`) year++;
   const w = contestWindow(year);
-  // A chosen day only counts when it falls inside this year's window.
-  const useChosen = chosen !== null && chosen >= w.start && chosen <= w.end;
+  // Some schools hold the contest earlier, so the admin may pick any day of the school year
+  // (1 September up to 31 March). A day from an earlier school year no longer counts.
+  const earliest = schoolYearStart(year);
+  const useChosen = chosen !== null && chosen >= earliest && chosen <= w.end;
   const date = useChosen ? chosen! : w.start;
   const daysLeft = Math.max(0, daysBetween(today, date));
   const phase = today < date ? "countdown" : today === date ? "today" : useChosen ? "done" : "open";
-  return { date, chosen: useChosen, windowStart: w.start, windowEnd: w.end, daysLeft, phase };
+  return { date, chosen: useChosen, windowStart: w.start, windowEnd: w.end, earliest, daysLeft, phase };
 }
 
 export interface ReadinessInput {

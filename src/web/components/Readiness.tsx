@@ -143,8 +143,8 @@ export function ContestSettings({ profileId, name, r, onSaved }: { profileId: nu
       <div className="row">
         <label className="field">
           School's contest day
-          <input type="date" value={day} min={r.contest.windowStart} max={r.contest.windowEnd} onChange={(e) => setDay(e.target.value)} />
-          <span className="hint">Empty = first day ({shortDay(r.contest.windowStart)}).</span>
+          <input type="date" value={day} min={r.contest.earliest ?? r.contest.windowStart} max={r.contest.windowEnd} onChange={(e) => setDay(e.target.value)} />
+          <span className="hint">Any school day up to {shortDay(r.contest.windowEnd)}, also earlier ones like December. Empty = {shortDay(r.contest.windowStart)}.</span>
         </label>
         <label className="field">
           Target score

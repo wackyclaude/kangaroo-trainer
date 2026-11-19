@@ -24,9 +24,12 @@ describe("which contest to count down to", () => {
   it("uses the parent's day when it is inside the window", () => {
     expect(contestFor("2026-10-19", "2027-03-25")).toMatchObject({ date: "2027-03-25", chosen: true, phase: "countdown" });
   });
-  it("ignores a day from an earlier year or outside the window", () => {
+  it("accepts an early school day (from 1 September), but not one from an earlier school year", () => {
+    expect(contestFor("2026-10-19", "2026-12-04")).toMatchObject({ date: "2026-12-04", chosen: true, earliest: "2026-09-01", phase: "countdown", daysLeft: 46 });
+    expect(contestFor("2026-10-19", "2027-03-02")).toMatchObject({ date: "2027-03-02", chosen: true });
+    expect(contestFor("2026-12-05", "2026-12-04")).toMatchObject({ phase: "done" });
     expect(contestFor("2026-10-19", "2026-03-19")).toMatchObject({ date: "2027-03-18", chosen: false });
-    expect(contestFor("2026-10-19", "2027-03-02")).toMatchObject({ date: "2027-03-18", chosen: false });
+    expect(contestFor("2026-10-19", "2026-08-31")).toMatchObject({ date: "2027-03-18", chosen: false });
   });
   it("knows contest day, the open window and after", () => {
     expect(contestFor("2027-03-18", null)).toMatchObject({ phase: "today", daysLeft: 0 });
@@ -99,6 +102,13 @@ describe("readiness API", () => {
     expect((await put(w.miraC, { contestDate: null, targetScore: 60 })).statusCode).toBe(403);
     expect((await put(w.parent, { contestDate: "2027-02-30", targetScore: null })).statusCode).toBe(400);
     expect((await put(w.parent, { contestDate: "2027-04-02", targetScore: null })).statusCode).toBe(400);
+    // An early school day is fine (some schools hold the contest in December).
+    const today = new Date();
+    const season = today.getMonth() >= 3 ? today.getFullYear() + 1 : today.getFullYear();
+    const early = await put(w.parent, { contestDate: `${season - 1}-12-04`, targetScore: null });
+    expect(early.statusCode).toBe(200);
+    expect(early.json().contest).toMatchObject({ date: `${season - 1}-12-04`, chosen: true });
+    expect((await put(w.parent, { contestDate: `${season - 1}-08-20`, targetScore: null })).statusCode).toBe(400);
     expect((await put(w.parent, { contestDate: null, targetScore: 130 })).statusCode).toBe(400);
     expect((await put(w.parent, { contestDate: null, targetScore: 80 }, 1)).statusCode).toBe(404); // the parent profile
     const ok = await put(w.parent, { contestDate: null, targetScore: 80 });

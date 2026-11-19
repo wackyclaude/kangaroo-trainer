@@ -12,6 +12,9 @@ import { buildBenchmarks, buildInsights } from "../insights/store.js";
 import { toCsv as csv } from "../csv.js";
 import { buildRewards } from "../rewards/store.js";
 import { buildReadiness } from "../readiness/store.js";
+import { contestFor } from "../readiness/model.js";
+import { dayKey } from "../rewards/model.js";
+import { HOME_TIME_ZONE } from "../rewards/store.js";
 import { profile as profileTable } from "../db/schema.js";
 
 const iso = (ms: number | null) => (ms === null ? "" : new Date(ms).toISOString());
@@ -126,10 +129,13 @@ export async function insightRoutes(app: FastifyInstance, deps: { db: Db }): Pro
     if (!requireParent(req, reply)) return;
     const p = z.object({ profileId: z.coerce.number().int().positive() }).safeParse(req.params);
     const body = ContestSettings.safeParse(req.body);
-    if (!p.success || !body.success) return reply.code(400).send({ error: "invalid", message: "Please pick a date in March and a target between 40 and 120." });
+    if (!p.success || !body.success) return reply.code(400).send({ error: "invalid", message: "Please pick a school day and a target between 40 and 120." });
     const d = body.data.contestDate;
-    if (d && !(d.slice(5, 7) === "03" && Number(d.slice(8)) >= 15)) {
-      return reply.code(400).send({ error: "invalid", message: "The contest is held between the third Thursday of March and 31 March." });
+    if (d) {
+      const season = contestFor(dayKey(Date.now(), HOME_TIME_ZONE), null);
+      if (d < season.earliest! || d > season.windowEnd) {
+        return reply.code(400).send({ error: "invalid", message: `Pick a day between ${season.earliest} and ${season.windowEnd}.` });
+      }
     }
     const target = db.select({ role: profileTable.role }).from(profileTable).where(eq(profileTable.id, p.data.profileId)).get();
     if (!target || target.role !== "student") return reply.code(404).send({ error: "not_found", message: "That student doesn't exist." });
