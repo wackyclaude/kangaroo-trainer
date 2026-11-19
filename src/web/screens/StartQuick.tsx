@@ -55,7 +55,7 @@ export function StartQuick({ mode }: { mode: "mistakes" | "smart" }) {
         </h1>
         {oly && (
           <p className="muted small-line">
-            Levels {range[0]}–{range[range.length - 1]} (set by your parent).
+            Levels {range[0]}–{range[range.length - 1]} (set by the admin).
           </p>
         )}
         {mode === "mistakes" ? (

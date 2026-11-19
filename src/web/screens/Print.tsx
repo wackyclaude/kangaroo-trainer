@@ -124,7 +124,7 @@ export function Print({ sessionId, me }: { sessionId: number; me: Me }) {
 
       {key && withKey && (
         <section className="print-key">
-          <h2>Answer key (parent)</h2>
+          <h2>Answer key (admin)</h2>
           <ol className="key-cols">
             {key.map((k) => (
               <li key={k.position}>

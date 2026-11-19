@@ -13,7 +13,7 @@ import { focusColor, focusName, go, minutes, when } from "../format";
 
 const TIER_NAME = { "warm-up": "Warm-up", core: "Core", challenge: "Challenge" } as const;
 
-/** My progress (student) or a student's progress (parent). */
+/** My progress (student) or a student's progress (admin). */
 export function Progress({ profileId, asParent }: { profileId?: number; asParent?: boolean }) {
   const [ins, setIns] = useState<Insights | null>(null);
   const [error, setError] = useState("");

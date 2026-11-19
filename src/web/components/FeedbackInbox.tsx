@@ -3,7 +3,7 @@ import { FEEDBACK_MAX_CHARS, type FeedbackItem } from "../../shared/types";
 import { api, messageOf } from "../api";
 import { FeedbackEntry, questionName } from "./Feedback";
 
-/** Parent corner: messages from students, newest first, with reply / done / delete. */
+/** Admin corner: messages from students, newest first, with reply / done / delete. */
 export function FeedbackInbox() {
   const [items, setItems] = useState<FeedbackItem[] | null>(null);
   const [showDone, setShowDone] = useState(false);

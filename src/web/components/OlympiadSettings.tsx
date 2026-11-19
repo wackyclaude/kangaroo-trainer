@@ -9,7 +9,7 @@ export interface SavedOlympiad {
   readiness: Readiness | null;
 }
 
-/** Which contests a student practises for (parent). */
+/** Which contests a student practises for (admin). */
 export function ContestToggles({ profileId, name, value, onSaved }: { profileId: number; name: string; value: Contest[]; onSaved: (s: SavedOlympiad) => void }) {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const change = async (next: Contest[]) => {
@@ -34,7 +34,7 @@ export function ContestToggles({ profileId, name, value, onSaved }: { profileId:
   );
 }
 
-/** Olympiad level range, stretch question, the school's day and the target (parent). */
+/** Olympiad level range, stretch question, the school's day and the target (admin). */
 export function OlympiadSettingsForm({ profileId, name, value, r, onSaved }: { profileId: number; name: string; value: OlympiadSettings; r: Readiness; onSaved: (s: SavedOlympiad) => void }) {
   const [min, setMin] = useState(String(value.minLevel));
   const [max, setMax] = useState(String(value.maxLevel));

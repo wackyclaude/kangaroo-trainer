@@ -110,7 +110,7 @@ export function StudentHome({ me }: { me: Me }) {
           )}
           {replies > 0 && (
             <button type="button" className="notice" onClick={() => go("#/feedback")}>
-              <strong>Your parent replied</strong>
+              <strong>The admin replied</strong>
               <span className="muted">{replies === 1 ? "1 new reply" : `${replies} new replies`}</span>
               <span aria-hidden="true">→</span>
             </button>

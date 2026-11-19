@@ -73,7 +73,7 @@ export function StartFocus() {
             <Chips label="Levels" values={levels} onChange={setLevels} options={range.map((l) => ({ value: String(l), label: `Level ${l}` }))} />
             <LevelGuide items={range.map((l) => ({ name: `Level ${l} · ${OLY_LEVEL_NAME[l as OlyLevel]}`, text: `${OLY_LEVEL_TEXT[l as OlyLevel]} got it right.` }))} />
             <p className="muted small-line" style={{ margin: 0 }}>
-              None picked = all of {range.length === 1 ? `level ${range[0]}` : `levels ${range[0]}–${range[range.length - 1]}`} (the range your parent set).
+              None picked = all of {range.length === 1 ? `level ${range[0]}` : `levels ${range[0]}–${range[range.length - 1]}`} (the range the admin set).
             </p>
           </>
         ) : (

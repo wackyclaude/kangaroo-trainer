@@ -22,7 +22,7 @@ export function FeedbackForm({ questionId = null, sessionId = null, onSent, onCa
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!kind) return setError("Pick what it's about first.");
-    if (needsWords && message.trim().length < 2) return setError("Write a few words so your parent knows what you mean.");
+    if (needsWords && message.trim().length < 2) return setError("Write a few words so the admin knows what you mean.");
     setBusy(true);
     setError("");
     try {
@@ -41,7 +41,7 @@ export function FeedbackForm({ questionId = null, sessionId = null, onSent, onCa
   if (sent) {
     return (
       <div className="message ok feedback-sent" role="status">
-        Sent to your parent. Thank you!{" "}
+        Sent to the admin. Thank you!{" "}
         <button type="button" className="btn quiet" onClick={() => (onCancel ? onCancel() : setSent(false))}>
           {onCancel ? "Close" : "Send another"}
         </button>
@@ -50,7 +50,7 @@ export function FeedbackForm({ questionId = null, sessionId = null, onSent, onCa
   }
   return (
     <form className="feedback-form stack" onSubmit={submit} aria-labelledby={`${id}-h`}>
-      <strong id={`${id}-h`}>{questionId ? "Tell your parent about this question" : "Tell your parent"}</strong>
+      <strong id={`${id}-h`}>{questionId ? "Tell the admin about this question" : "Tell the admin"}</strong>
       <div className="chip-row" role="group" aria-label="What is it about?">
         {kinds.map((k) => (
           <button key={k} type="button" className="pick-chip plain" aria-pressed={kind === k} onClick={() => setKind(k)}>
@@ -96,7 +96,7 @@ export function QuestionFeedback({ questionId, sessionId }: { questionId: string
   ) : (
     <div>
       <button type="button" className="btn quiet" onClick={() => setOpen(true)}>
-        💬 Something wrong or unclear? Tell your parent
+        💬 Something wrong or unclear? Tell the admin
       </button>
     </div>
   );

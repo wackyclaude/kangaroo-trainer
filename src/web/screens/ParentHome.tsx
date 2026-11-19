@@ -97,7 +97,7 @@ export function ParentHome({ me }: { me: Me }) {
   return (
     <div className="stack" style={{ gap: 40 }}>
       <div>
-        <h1>Parent corner</h1>
+        <h1>Admin corner</h1>
         <p className="muted">Hi {me.nickname}. See how everyone is doing, print papers, and manage students.</p>
       </div>
 
@@ -128,7 +128,7 @@ export function ParentHome({ me }: { me: Me }) {
               <tr key={p.id}>
                 <td>
                   <Face avatar={p.avatar} photo={p.photo} className="inline-face" /> <strong>{p.nickname}</strong>
-                  {p.role === "parent" && <span className="muted"> (parent)</span>}
+                  {p.role === "parent" && <span className="muted"> (admin)</span>}
                   {p.locked && <span className="locked-note"> locked</span>}
                 </td>
                 <td>{p.grade ?? "—"}</td>

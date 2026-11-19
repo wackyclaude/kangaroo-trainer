@@ -172,7 +172,7 @@ export async function profileRoutes(app: FastifyInstance, deps: { db: Db }): Pro
     },
   );
 
-  // Removes a picture: your own, or (parent) a student's.
+  // Removes a picture: your own, or (admin) a student's.
   const removePhoto = (id: number) =>
     db.transaction((tx) => {
       tx.delete(profilePhoto).where(eq(profilePhoto.profileId, id)).run();

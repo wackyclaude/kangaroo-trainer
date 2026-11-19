@@ -49,18 +49,18 @@ export async function authRoutes(app: FastifyInstance, deps: AuthDeps): Promise<
 
   app.get("/api/setup/status", async () => ({ needsSetup: parentCount() === 0 }));
 
-  // First run only: creates the parent profile. Needs the one-time setup code from the server log.
+  // First run only: creates the admin profile. Needs the one-time setup code from the server log.
   app.post("/api/setup", { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }, async (req, reply) => {
     const body = z
       .object({ setupCode: z.string().max(64), nickname: Nickname, avatar: AvatarZ, pin: z.string() })
       .safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: "invalid", message: "Please check the form." });
-    if (parentCount() > 0) return reply.code(409).send({ error: "already_set_up", message: "The parent profile already exists." });
+    if (parentCount() > 0) return reply.code(409).send({ error: "already_set_up", message: "The admin profile already exists." });
     if (!safeEqual(body.data.setupCode.trim(), deps.setupCode)) {
       return reply.code(403).send({ error: "bad_setup_code", message: "That setup code doesn't match the one in the server log." });
     }
     if (!isValidPin("parent", body.data.pin)) {
-      return reply.code(400).send({ error: "weak_pin", message: "The parent PIN needs 6 to 12 digits." });
+      return reply.code(400).send({ error: "weak_pin", message: "The admin PIN needs 6 to 12 digits." });
     }
     const row = db
       .insert(profile)

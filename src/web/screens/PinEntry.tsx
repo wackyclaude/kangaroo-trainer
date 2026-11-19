@@ -35,7 +35,7 @@ export function PinEntry({ profile, onBack, onSignedIn }: { profile: ProfileCard
           {profile.avatar}
         </span>
         <h1>Hi {profile.nickname}! Type your PIN</h1>
-        {isParent && <p className="muted">Parent PIN: 6 to 12 digits, then tap OK.</p>}
+        {isParent && <p className="muted">Admin PIN: 6 to 12 digits, then tap OK.</p>}
         <PinPad length={isParent ? 6 : 4} maxLength={isParent ? 12 : undefined} busy={busy} shakeKey={shake} onSubmit={submit} />
         <div style={{ minHeight: 48 }}>{error && <div className="message" role="alert">{error}</div>}</div>
         <button type="button" className="btn quiet" onClick={onBack}>

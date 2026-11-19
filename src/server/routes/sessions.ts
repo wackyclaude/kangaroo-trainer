@@ -184,7 +184,7 @@ export async function sessionRoutes(app: FastifyInstance, deps: { db: Db }): Pro
     let profileId = user.id;
     const forId = (b.mode === "paper" || b.mode === "focus") && b.forProfileId;
     if (forId && forId !== user.id) {
-      if (user.role !== "parent" || !onPaper) return reply.code(403).send({ error: "parent_only", message: "Only the parent can set up a paper quiz for someone else." });
+      if (user.role !== "parent" || !onPaper) return reply.code(403).send({ error: "parent_only", message: "Only the admin can set up a paper quiz for someone else." });
       const target = db.select().from(profile).where(eq(profile.id, forId)).get();
       if (!target || target.role !== "student") return reply.code(404).send({ error: "not_found", message: "That student doesn't exist." });
       profileId = forId;
@@ -192,7 +192,7 @@ export async function sessionRoutes(app: FastifyInstance, deps: { db: Db }): Pro
 
     // The contest must be turned on for this student, and Olympiad short quizzes stay inside the parent's level range.
     const prefs = profileSettings(db, profileId);
-    if (!prefs || !prefs.contests.includes(contest)) return reply.code(403).send({ error: "contest_off", message: "That contest isn't turned on for this profile. The parent can switch it on." });
+    if (!prefs || !prefs.contests.includes(contest)) return reply.code(403).send({ error: "contest_off", message: "That contest isn't turned on for this profile. The admin can switch it on." });
     if (contest === "olympiad" && b.mode !== "paper") {
       const { minLevel, maxLevel, stretch } = prefs.olympiad;
       const allowed = OLY_LEVELS.filter((l) => l >= minLevel && l <= maxLevel);

@@ -30,7 +30,7 @@ You need the apps-prod account, region **Europe (Stockholm)**, and the question 
    bash setup.sh
    ```
 4. Wait about 10 minutes, then open the web address the script printed.
-5. Get the one-time setup code for the parent profile:
+5. Get the one-time setup code for the admin profile:
    ```sh
    ID=$(aws ec2 describe-instances --filters Name=tag:App,Values=kangaroo Name=instance-state-name,Values=running --query 'Reservations[0].Instances[0].InstanceId' --output text)
    CMD=$(aws ssm send-command --instance-ids "$ID" --document-name AWS-RunShellScript --parameters 'commands=["cd /srv/kt/app && docker compose logs app 2>&1 | grep FIRST-TIME"]' --query Command.CommandId --output text)

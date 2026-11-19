@@ -62,13 +62,13 @@ export async function feedbackRoutes(app: FastifyInstance, deps: { db: Db }): Pr
   app.post("/api/feedback", { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }, async (req, reply) => {
     const user = requireUser(req, reply);
     if (!user) return;
-    if (user.role !== "student") return reply.code(403).send({ error: "students_only", message: "Feedback is for students to send to the parent." });
+    if (user.role !== "student") return reply.code(403).send({ error: "students_only", message: "Feedback is for students to send to the admin." });
     const body = SendBody.safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: "invalid", message: `Please pick what it's about and keep the message under ${FEEDBACK_MAX_CHARS} characters.` });
     const b = body.data;
     const allowed = b.questionId ? QUESTION_FEEDBACK : APP_FEEDBACK;
     if (!allowed.includes(b.kind)) return reply.code(400).send({ error: "invalid", message: "Please pick what it's about." });
-    if (b.message.length < 2 && (!b.questionId || b.kind === "other")) return reply.code(400).send({ error: "invalid", message: "Please write a few words so your parent knows what you mean." });
+    if (b.message.length < 2 && (!b.questionId || b.kind === "other")) return reply.code(400).send({ error: "invalid", message: "Please write a few words so the admin knows what you mean." });
     if (b.questionId && !db.select({ id: question.id }).from(question).where(eq(question.id, b.questionId)).get()) {
       return reply.code(404).send({ error: "not_found", message: "That question doesn't exist." });
     }
@@ -78,7 +78,7 @@ export async function feedbackRoutes(app: FastifyInstance, deps: { db: Db }): Pr
     }
     const now = Date.now();
     const today = db.select({ n: count() }).from(feedback).where(and(eq(feedback.profileId, user.id), gt(feedback.createdAt, now - DAY))).get()?.n ?? 0;
-    if (today >= FEEDBACK_PER_DAY) return reply.code(429).send({ error: "slow_down", message: "That's a lot of messages for one day. Your parent will read them; send more tomorrow." });
+    if (today >= FEEDBACK_PER_DAY) return reply.code(429).send({ error: "slow_down", message: "That's a lot of messages for one day. The admin will read them; send more tomorrow." });
     const row = db
       .insert(feedback)
       .values({ profileId: user.id, questionId: b.questionId, sessionId: b.sessionId, kind: b.kind, message: b.message, createdAt: now })
@@ -107,7 +107,7 @@ export async function feedbackRoutes(app: FastifyInstance, deps: { db: Db }): Pr
     return rows.map((r) => toItem(r, parent));
   });
 
-  // Counts for badges on the home screens: open items (parent) or unseen replies (student).
+  // Counts for badges on the home screens: open items (admin) or unseen replies (student).
   app.get("/api/feedback/summary", async (req, reply) => {
     const user = requireUser(req, reply);
     if (!user) return;

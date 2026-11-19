@@ -29,7 +29,7 @@ export function MePage({ me, onSignOut, onMe }: { me: Me; onSignOut: () => void;
       <LookPicker />
       <div className="row">
         <button type="button" className="btn" onClick={() => go("#/feedback")}>
-          Feedback for my parent
+          Feedback for the admin
         </button>
         <button type="button" className="btn" aria-expanded={browse} onClick={() => (!browse && track("explorer_open"), setBrowse((b) => !b))}>
           Browse all the questions
@@ -40,7 +40,7 @@ export function MePage({ me, onSignOut, onMe }: { me: Me; onSignOut: () => void;
       </div>
       {browse && <Explorer />}
       <p className="muted small-line">
-        The app counts which buttons you use and how long questions take, so your parent can see what helps. It never keeps your drawings or anything you type.
+        The app counts which buttons you use and how long questions take, so the admin can see what helps. It never keeps your drawings or anything you type.
       </p>
     </div>
   );
